@@ -59,9 +59,6 @@
     font-size: 2rem;
   }
   
-  .control-button:hover {
-    color: #61dafb;
-  }
   
   .playlist {
     width: 80%;
@@ -118,3 +115,17 @@
     }
   }
   
+  /* Progress Bar */
+.progress-container {
+  width: 640px; /* or adjust as needed */
+  height: 10px; /* or adjust as needed */
+  background-color: #444;
+  border-radius: 5px;
+  margin: 20px 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #61dafb;
+  border-radius: 5px;
+}

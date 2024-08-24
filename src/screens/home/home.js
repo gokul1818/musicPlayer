@@ -1,49 +1,68 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faVolumeUp, faVolumeMute } from '@fortawesome/free-solid-svg-icons';
 import './styles.css'; // Import CSS for styling
-import cdPlayer from "../../assets/gif/cdPlayer.gif"
+import cdPlayer from "../../assets/gif/cdPlayer.gif";
 
 function Home() {
   const playerRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false); // State to track play/pause
-  const [isMuted, setIsMuted] = useState(false); // State to track mute/unmute
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const onReady = (event) => {
     playerRef.current = event.target;
     event.target.pauseVideo(); // Optionally start with video paused
+    setVideoDuration(event.target.getDuration()); // Get video duration
+  };
+
+  const onStateChange = (event) => {
+    if (event.data === YouTube.PlayerState.PLAYING) {
+      setIsPlaying(true);
+      const interval = setInterval(() => {
+        if (playerRef.current) {
+          setCurrentTime(playerRef.current.getCurrentTime());
+        }
+      }, 1000); // Update every second
+
+      return () => clearInterval(interval);
+    } else {
+      setIsPlaying(false);
+    }
   };
 
   const handlePlay = () => {
     if (playerRef.current) {
       playerRef.current.playVideo();
-      setIsPlaying(true); // Update state to show pause icon and CD animation
     }
   };
 
   const handlePause = () => {
     if (playerRef.current) {
       playerRef.current.pauseVideo();
-      setIsPlaying(false); // Update state to show play icon and hide CD animation
     }
   };
 
   const handleMute = () => {
     if (playerRef.current) {
       playerRef.current.mute();
-      setIsMuted(true); // Update state to show unmute icon
+      setIsMuted(true);
     }
   };
 
   const handleUnmute = () => {
     if (playerRef.current) {
       playerRef.current.unMute();
-      setIsMuted(false); // Update state to show mute icon
+      setIsMuted(false);
     }
   };
 
-  const videoId = 'W66CpwlSiq8'; // Ensure this is a valid video ID
+  // const videoId = 'W66CpwlSiq8';
+  const videoId = "RgOEKdA2mlw"
+
+  const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
 
   return (
     <div className="home-container">
@@ -58,14 +77,15 @@ function Home() {
         <YouTube
           videoId={videoId}
           opts={{
-            height: '10', // Hidden size
-            width: '10', // Hidden size
+            height: '10',
+            width: '10',
             playerVars: {
               autoplay: 1,
-              controls: 0, // Hide player controls
+              controls: 0,
             },
           }}
           onReady={onReady}
+          onStateChange={onStateChange}
         />
       </div>
 
@@ -88,6 +108,10 @@ function Home() {
             <FontAwesomeIcon icon={faVolumeMute} />
           </button>
         )}
+      </div>
+
+      <div className="progress-container">
+        <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
       </div>
 
       <div className="playlist">
