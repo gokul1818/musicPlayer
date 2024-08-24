@@ -9,8 +9,7 @@ function Login() {
   const handleSignUp = async () => {
     try {
       await account.create("unique()", email, password);
-      navigate('/home'); 
-      alert('User signed up successfully!');
+      navigate('/home');
     } catch (error) {
       console.error('Sign Up Error:', error);
       alert('Error signing up: ' + error.message);
@@ -19,8 +18,8 @@ function Login() {
 
   const handleLogin = async () => {
     try {
-      await account.createSession(email, password);
-      alert('User logged in successfully!');
+      await account.createEmailPasswordSession(email, password);
+      navigate('/home');
     } catch (error) {
       console.error('Login Error:', error);
       alert('Error logging in: ' + error.message);
