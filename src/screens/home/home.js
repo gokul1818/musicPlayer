@@ -126,7 +126,7 @@ function Home() {
           videoId={videoId}
           opts={{
             height: '360',
-            width: '640',
+            width: '10',
             playerVars: {
               autoplay: 1,
               controls: 0,
