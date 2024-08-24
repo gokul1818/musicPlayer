@@ -1,9 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
-import YouTube from 'react-youtube';
+import { faPause, faPlay, faVolumeMute, faVolumeUp } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faVolumeUp, faVolumeMute } from '@fortawesome/free-solid-svg-icons';
-import './styles.css'; // Import CSS for styling
+import React, { useEffect, useRef, useState } from 'react';
+import YouTube from 'react-youtube';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
+import { db, doc, onSnapshot, setDoc } from '../../firebase'; // Import Firebase Firestore functions
+import './styles.css'; // Import CSS for styling
 
 function Home() {
   const playerRef = useRef(null);
@@ -11,6 +12,30 @@ function Home() {
   const [isMuted, setIsMuted] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+
+  const playbackDocRef = doc(db, 'playbackState', 'current');
+
+  useEffect(() => {
+    // Listen for updates from Firestore
+    const unsubscribe = onSnapshot(playbackDocRef, (docSnapshot) => {
+      const data = docSnapshot.data();
+      if (data) {
+        setIsPlaying(data.isPlaying);
+        setIsMuted(data.isMuted);
+        setCurrentTime(data.currentTime);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
+    await setDoc(playbackDocRef, {
+      isPlaying,
+      currentTime,
+      isMuted,
+    });
+  };
 
   const onReady = (event) => {
     playerRef.current = event.target;
@@ -21,27 +46,32 @@ function Home() {
   const onStateChange = (event) => {
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
-      const interval = setInterval(() => {
+      const id = setInterval(() => {
         if (playerRef.current) {
-          setCurrentTime(playerRef.current.getCurrentTime());
+          const current = playerRef.current.getCurrentTime();
+          setCurrentTime(current);
+          updatePlaybackState(true, current, isMuted);
         }
       }, 1000); // Update every second
 
-      return () => clearInterval(interval);
+      return () => clearInterval(id);
     } else {
       setIsPlaying(false);
+      updatePlaybackState(false, currentTime, isMuted);
     }
   };
 
   const handlePlay = () => {
     if (playerRef.current) {
       playerRef.current.playVideo();
+      updatePlaybackState(true, currentTime, isMuted);
     }
   };
 
   const handlePause = () => {
     if (playerRef.current) {
       playerRef.current.pauseVideo();
+      updatePlaybackState(false, currentTime, isMuted);
     }
   };
 
@@ -49,6 +79,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.mute();
       setIsMuted(true);
+      updatePlaybackState(isPlaying, currentTime, true);
     }
   };
 
@@ -56,12 +87,11 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.unMute();
       setIsMuted(false);
+      updatePlaybackState(isPlaying, currentTime, false);
     }
   };
 
-  // const videoId = 'W66CpwlSiq8';
-  const videoId = "RgOEKdA2mlw"
-
+  const videoId = 'RgOEKdA2mlw';
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
 
   return (
