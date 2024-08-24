@@ -24,14 +24,14 @@ function Home() {
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
         console.log("sdfsdf")
-        // if (playerRef.current) {
-        //   playerRef.current.seekTo(data.currentTime, true);
-        //   if (data.isPlaying) {
-        //     playerRef.current.playVideo();
-        //   } else {
-        //     playerRef.current.pauseVideo();
-        //   }
-        // }
+        if (playerRef.current) {
+          playerRef.current.seekTo(data.currentTime, true);
+          if (data.isPlaying) {
+            playerRef.current.playVideo();
+          } else {
+            playerRef.current.pauseVideo();
+          }
+        }
       }
     });
 
