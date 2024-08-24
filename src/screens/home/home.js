@@ -38,11 +38,11 @@ function Home() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (playerRef.current) {
-      playerRef.current.seekTo(currentTime, true);
-    }
-  }, [currentTime]);
+  // useEffect(() => {
+  //   if (playerRef.current) {
+  //     playerRef.current.seekTo(currentTime, true);
+  //   }
+  // }, [currentTime]);
 
   const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
     try {
@@ -66,13 +66,13 @@ function Home() {
     console.log(event)
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
-      // const intervalId = setInterval(() => {
-      //   if (playerRef.current) {
-      //     const current = playerRef.current.getCurrentTime();
-      //     setCurrentTime(current);
-      //     // updatePlaybackState(true, current, isMuted);
-      //   }
-      // }, 0); // Update every second
+      const intervalId = setInterval(() => {
+        if (playerRef.current) {
+          const current = playerRef.current.getCurrentTime();
+          setCurrentTime(current);
+          // updatePlaybackState(true, current, isMuted);
+        }
+      },10); // Update every second
 
       return () => clearInterval(intervalId);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
@@ -139,7 +139,7 @@ function Home() {
             },
           }}
           onReady={onReady}
-          // onStateChange={onStateChange}
+          onStateChange={onStateChange}
         />
       </div>
 
