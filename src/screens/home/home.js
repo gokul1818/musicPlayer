@@ -23,8 +23,14 @@ function Home() {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
+        if (data.isPlaying) {
+          handlePlay()
+        } else {
+          handlePause()
+        }
       }
     });
+
 
     return () => unsubscribe();
   }, []);
@@ -125,7 +131,7 @@ function Home() {
             },
           }}
           onReady={onReady}
-          // onStateChange={onStateChange}
+        // onStateChange={onStateChange}
         />
       </div>
 
