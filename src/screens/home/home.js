@@ -10,23 +10,20 @@ function Home() {
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [videoDuration, setVideoDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
 
   const playbackDocRef = doc(db, 'playbackState', 'current');
 
   useEffect(() => {
-    // Listen for updates from Firestore
     const unsubscribe = onSnapshot(playbackDocRef, (docSnapshot) => {
       const data = docSnapshot.data();
       if (data) {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
-
         setCurrentTime(data.currentTime);
         if (playerRef.current) {
-          if (data?.isMuted) {
+          if (data.isMuted) {
             playerRef.current.mute();
           } else {
             playerRef.current.unMute();
@@ -45,12 +42,6 @@ function Home() {
     return () => unsubscribe();
   }, []);
 
-  // useEffect(() => {
-  //   if (playerRef.current) {
-  //     playerRef.current.seekTo(currentTime, true);
-  //   }
-  // }, [currentTime]);
-
   const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
     try {
       await setDoc(playbackDocRef, {
@@ -67,27 +58,22 @@ function Home() {
     playerRef.current = event.target;
     event.target.pauseVideo(); // Optionally start with video paused
     setVideoDuration(event.target.getDuration());
-    setLoading(false)
-    // Get video duration
   };
 
   const onStateChange = (event) => {
-    console.log(event)
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
       const intervalId = setInterval(() => {
         if (playerRef.current) {
           const current = playerRef.current.getCurrentTime();
           setCurrentTime(current);
-          // updatePlaybackState(true, current, isMuted);
         }
-      }, 10); // Update every second
+      }, 1000); // Update every second
 
       return () => clearInterval(intervalId);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
       const current = playerRef.current.getCurrentTime();
-
       updatePlaybackState(false, current, isMuted);
     }
   };
@@ -127,12 +113,6 @@ function Home() {
   const videoId = 'RgOEKdA2mlw';
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
 
-  useEffect(() => {
-    if (playerRef.current) {
-      playerRef.current.playVideo();
-      // updatePlaybackState(true, currentTime, isMuted);
-    }
-  }, [playerRef])
   return (
     <div className="home-container">
       <header className="player-header">
@@ -141,13 +121,13 @@ function Home() {
       <div className={`cd-container ${isPlaying ? 'rotating' : ''}`}>
         <img className="cd" src={cdPlayer} alt="Album Art" />
       </div>
-      {loading && <p>loading</p>}
+
       <div className="youtube-player-container">
         <YouTube
           videoId={videoId}
           opts={{
             height: '360',
-            width: '10',
+            width: '640', // Updated to a more reasonable value
             playerVars: {
               autoplay: 1,
               controls: 0,
