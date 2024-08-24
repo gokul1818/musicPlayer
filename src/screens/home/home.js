@@ -23,14 +23,15 @@ function Home() {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
-        if (playerRef.current) {
-          playerRef.current.seekTo(data.currentTime, true);
-          if (data.isPlaying) {
-            playerRef.current.playVideo();
-          } else {
-            playerRef.current.pauseVideo();
-          }
-        }
+        console.log("sdfsdf")
+        // if (playerRef.current) {
+        //   playerRef.current.seekTo(data.currentTime, true);
+        //   if (data.isPlaying) {
+        //     playerRef.current.playVideo();
+        //   } else {
+        //     playerRef.current.pauseVideo();
+        //   }
+        // }
       }
     });
 
@@ -65,13 +66,13 @@ function Home() {
     console.log(event)
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
-      const intervalId = setInterval(() => {
-        if (playerRef.current) {
-          const current = playerRef.current.getCurrentTime();
-          setCurrentTime(current);
-          // updatePlaybackState(true, current, isMuted);
-        }
-      }, 0); // Update every second
+      // const intervalId = setInterval(() => {
+      //   if (playerRef.current) {
+      //     const current = playerRef.current.getCurrentTime();
+      //     setCurrentTime(current);
+      //     // updatePlaybackState(true, current, isMuted);
+      //   }
+      // }, 0); // Update every second
 
       return () => clearInterval(intervalId);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
@@ -84,6 +85,7 @@ function Home() {
 
   const handlePlay = () => {
     if (playerRef.current) {
+      playerRef.current.seekTo(currentTime, true);
       playerRef.current.playVideo();
       updatePlaybackState(true, currentTime, isMuted);
     }
@@ -91,6 +93,7 @@ function Home() {
 
   const handlePause = () => {
     if (playerRef.current) {
+      playerRef.current.seekTo(currentTime, true);
       playerRef.current.pauseVideo();
       updatePlaybackState(false, currentTime, isMuted);
     }
