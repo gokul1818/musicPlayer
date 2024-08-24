@@ -1,7 +1,7 @@
-import { faPause, faPlay, faVolumeMute, faVolumeUp } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlay, faPause, faVolumeMute, faVolumeUp } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
 import { db, doc, onSnapshot, setDoc } from '../../firebase'; // Import Firebase Firestore functions
 import './styles.css'; // Import CSS for styling
@@ -29,12 +29,22 @@ function Home() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(currentTime);
+    }
+  }, [currentTime]);
+
   const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
-    await setDoc(playbackDocRef, {
-      isPlaying,
-      currentTime,
-      isMuted,
-    });
+    try {
+      await setDoc(playbackDocRef, {
+        isPlaying,
+        currentTime,
+        isMuted,
+      });
+    } catch (error) {
+      console.error("Error updating playback state:", error);
+    }
   };
 
   const onReady = (event) => {
@@ -46,7 +56,7 @@ function Home() {
   const onStateChange = (event) => {
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
-      const id = setInterval(() => {
+      const intervalId = setInterval(() => {
         if (playerRef.current) {
           const current = playerRef.current.getCurrentTime();
           setCurrentTime(current);
@@ -54,8 +64,8 @@ function Home() {
         }
       }, 1000); // Update every second
 
-      return () => clearInterval(id);
-    } else {
+      return () => clearInterval(intervalId);
+    } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
       updatePlaybackState(false, currentTime, isMuted);
     }
@@ -107,8 +117,8 @@ function Home() {
         <YouTube
           videoId={videoId}
           opts={{
-            height: '10',
-            width: '10',
+            height: '360',
+            width: '640',
             playerVars: {
               autoplay: 1,
               controls: 0,
