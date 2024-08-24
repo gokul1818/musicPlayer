@@ -23,21 +23,23 @@ function Home() {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
-        if (data.isPlaying) {
-          handlePlay()
-        } else {
-          handlePause()
+        if (playerRef.current) {
+          playerRef.current.seekTo(data.currentTime, true);
+          if (data.isPlaying) {
+            playerRef.current.playVideo();
+          } else {
+            playerRef.current.pauseVideo();
+          }
         }
       }
     });
-
 
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     if (playerRef.current) {
-      playerRef.current.seekTo(currentTime);
+      playerRef.current.seekTo(currentTime, true);
     }
   }, [currentTime]);
 
@@ -59,23 +61,23 @@ function Home() {
     setVideoDuration(event.target.getDuration()); // Get video duration
   };
 
-  // const onStateChange = (event) => {
-  //   if (event.data === YouTube.PlayerState.PLAYING) {
-  //     setIsPlaying(true);
-  //     const intervalId = setInterval(() => {
-  //       if (playerRef.current) {
-  //         const current = playerRef.current.getCurrentTime();
-  //         setCurrentTime(current);
-  //         updatePlaybackState(true, current, isMuted);
-  //       }
-  //     }, 1000); // Update every second
+  const onStateChange = (event) => {
+    if (event.data === YouTube.PlayerState.PLAYING) {
+      setIsPlaying(true);
+      const intervalId = setInterval(() => {
+        if (playerRef.current) {
+          const current = playerRef.current.getCurrentTime();
+          setCurrentTime(current);
+          updatePlaybackState(true, current, isMuted);
+        }
+      }, 1000); // Update every second
 
-  //     return () => clearInterval(intervalId);
-  //   } else if (event.data === YouTube.PlayerState.PAUSED) {
-  //     setIsPlaying(false);
-  //     updatePlaybackState(false, currentTime, isMuted);
-  //   }
-  // };
+      return () => clearInterval(intervalId);
+    } else if (event.data === YouTube.PlayerState.PAUSED) {
+      setIsPlaying(false);
+      updatePlaybackState(false, currentTime, isMuted);
+    }
+  };
 
   const handlePlay = () => {
     if (playerRef.current) {
@@ -131,7 +133,7 @@ function Home() {
             },
           }}
           onReady={onReady}
-        // onStateChange={onStateChange}
+          onStateChange={onStateChange}
         />
       </div>
 
