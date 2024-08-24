@@ -23,14 +23,14 @@ function Home() {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
-        if (playerRef.current) {
-          playerRef.current.seekTo(data.currentTime, true);
-          if (data.isPlaying) {
-            playerRef.current.playVideo();
-          } else {
-            playerRef.current.pauseVideo();
-          }
-        }
+        // if (playerRef.current) {
+        //   // playerRef.current.seekTo(data.currentTime, true);
+        //   if (data.isPlaying) {
+        //     playerRef.current.playVideo();
+        //   } else {
+        //     playerRef.current.pauseVideo();
+        //   }
+        // }
       }
     });
 
