@@ -10,6 +10,7 @@ function Home() {
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [videoDuration, setVideoDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
 
@@ -22,9 +23,15 @@ function Home() {
       if (data) {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
+
         setCurrentTime(data.currentTime);
-        console.log("sdfsdf")
         if (playerRef.current) {
+          if (data?.isMuted) {
+            playerRef.current.mute();
+          } else {
+            playerRef.current.unMute();
+          }
+
           playerRef.current.seekTo(data.currentTime, true);
           if (data.isPlaying) {
             playerRef.current.playVideo();
@@ -59,7 +66,9 @@ function Home() {
   const onReady = (event) => {
     playerRef.current = event.target;
     event.target.pauseVideo(); // Optionally start with video paused
-    setVideoDuration(event.target.getDuration()); // Get video duration
+    setVideoDuration(event.target.getDuration());
+    setLoading(false)
+    // Get video duration
   };
 
   const onStateChange = (event) => {
@@ -72,7 +81,7 @@ function Home() {
           setCurrentTime(current);
           // updatePlaybackState(true, current, isMuted);
         }
-      },10); // Update every second
+      }, 10); // Update every second
 
       return () => clearInterval(intervalId);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
@@ -118,6 +127,12 @@ function Home() {
   const videoId = 'RgOEKdA2mlw';
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
 
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.playVideo();
+      // updatePlaybackState(true, currentTime, isMuted);
+    }
+  }, [playerRef])
   return (
     <div className="home-container">
       <header className="player-header">
@@ -126,7 +141,7 @@ function Home() {
       <div className={`cd-container ${isPlaying ? 'rotating' : ''}`}>
         <img className="cd" src={cdPlayer} alt="Album Art" />
       </div>
-
+      {loading && <p>loading</p>}
       <div className="youtube-player-container">
         <YouTube
           videoId={videoId}
