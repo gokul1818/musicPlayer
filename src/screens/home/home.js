@@ -3,7 +3,7 @@ import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
-import { db, doc, onSnapshot, setDoc } from '../../firebase'; // Import Firebase Firestore functions
+import { db, doc, onSnapshot, setDoc, updateDoc, deleteDoc } from '../../firebase'; // Import Firebase Firestore functions
 import axios from 'axios'; // Import axios for API requests
 import './styles.css'; // Import CSS for styling
 import { debounce } from 'lodash';
@@ -18,7 +18,7 @@ function Home() {
   const [currentTime, setCurrentTime] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [selectedVideoId, setSelectedVideoId] = useState('RgOEKdA2mlw'); // Default video ID
+  const [selectedVideoId, setSelectedVideoId] = useState(''); // Default video ID
   const [playlist, setPlaylist] = useState([]);
   const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
 
@@ -32,6 +32,8 @@ function Home() {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
+        setSelectedVideoId(data?.videoId)
+        setVideoMetadata({ title: data?.title, thumbnail: data?.thumbnail, })
         if (playerRef.current) {
           if (data.isMuted) {
             playerRef.current.mute();
@@ -74,12 +76,15 @@ function Home() {
     return () => unsubscribe();
   }, []);
 
-  const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
+  const updatePlaybackState = async (isPlaying, currentTime, isMuted, title, thumbnail) => {
     try {
       await setDoc(playbackDocRef, {
         isPlaying,
         currentTime,
         isMuted,
+        title,
+        thumbnail,
+        videoId
       });
     } catch (error) {
       console.error("Error updating playback state:", error);
@@ -97,15 +102,20 @@ function Home() {
   const onReady = (event) => {
     playerRef.current = event.target;
     event.target.pauseVideo();
+
     setVideoDuration(event.target.getDuration());
 
     if (selectedVideoId) {
       const video = playlist.find((result) => result.id.videoId === selectedVideoId);
       if (video) {
-        setVideoMetadata({
+        const newMetadata = {
           title: video.snippet.title,
           thumbnail: video.snippet.thumbnails.default.url,
-        });
+        };
+        setVideoMetadata(newMetadata);
+
+        // Update Firestore with new video metadata
+        updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
       }
     }
   };
@@ -116,13 +126,14 @@ function Home() {
       intervalRef.current = setInterval(() => {
         if (playerRef.current) {
           const current = playerRef.current.getCurrentTime();
+          console.log(current)
           setCurrentTime(current);
         }
       }, 1000);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
       const current = playerRef.current.getCurrentTime();
-      updatePlaybackState(false, current, isMuted);
+      updatePlaybackState(false, current, isMuted, videoMetadata.title, videoMetadata.thumbnail);
     }
   };
 
@@ -130,7 +141,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.playVideo();
-      updatePlaybackState(true, currentTime, isMuted);
+      updatePlaybackState(true, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail);
     }
   };
 
@@ -138,7 +149,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.pauseVideo();
-      updatePlaybackState(false, currentTime, isMuted);
+      updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail);
     }
   };
 
@@ -146,14 +157,20 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.pauseVideo();
+      setVideoDuration(playerRef.current.getDuration());
+
       setIsReady(true);
-      const video = playlist.find((result) => result.id.videoId === videoId);
+      const video = playlist.find((result) => result.id.videoId === selectedVideoId);
 
       if (video) {
-        setVideoMetadata({
+        const newMetadata = {
           title: video.snippet.title,
           thumbnail: video.snippet.thumbnails.default.url,
-        });
+        };
+        setVideoMetadata(newMetadata);
+
+        // Update Firestore with new video metadata
+        updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
       }
     }
   };
@@ -162,7 +179,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.mute();
       setIsMuted(true);
-      updatePlaybackState(isPlaying, currentTime, true);
+      updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail);
     }
   };
 
@@ -170,7 +187,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.unMute();
       setIsMuted(false);
-      updatePlaybackState(isPlaying, currentTime, false);
+      updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail);
     }
   };
 
@@ -205,32 +222,49 @@ function Home() {
     const video = searchResults.find((result) => result.id.videoId === videoId);
 
     if (video) {
-      setVideoMetadata({
+      const newMetadata = {
         title: video.snippet.title,
         thumbnail: video.snippet.thumbnails.default.url,
-      });
+      };
+      setVideoMetadata(newMetadata);
+
+      // Update Firestore with new video metadata
+      updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
     }
   };
 
   const handleAddToQueue = (video) => {
     setIsReady(true);
-    if (!playlist.some((item) => item.id === video.id.videoId)) {
+    if (!playlist.some((item) => item.id.videoId === video.id.videoId)) {
       setPlaylist((prevPlaylist) => {
         const updatedPlaylist = [...prevPlaylist, video];
         updatePlaylistInFirestore(updatedPlaylist);
         return updatedPlaylist;
       });
     }
-
   };
 
   const handlePlayNext = () => {
-    setIsReady(true);
-
     if (playlist.length > 0) {
-      const nextVideoId = playlist[0].id.videoId;
-      setSelectedVideoId(nextVideoId);
-      setPlaylist((prevPlaylist) => prevPlaylist.slice(1));
+      const nextVideo = playlist[0];
+      setSelectedVideoId(nextVideo.id.videoId);
+      // Update video metadata for the selected video
+      const newMetadata = {
+        title: nextVideo.snippet.title,
+        thumbnail: nextVideo.snippet.thumbnails.default.url,
+      };
+      setVideoMetadata(newMetadata);
+
+      // Update Firestore with new video metadata
+      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail);
+
+      // Remove the played video from playlist
+      setPlaylist((prevPlaylist) => {
+        const updatedPlaylist = prevPlaylist.slice(1);
+        updatePlaylistInFirestore(updatedPlaylist);
+        return updatedPlaylist;
+      });
+      handleReady()
     }
   };
 
@@ -276,7 +310,7 @@ function Home() {
         </div>
       )}
 
-      <div className={`cd-container ${isPlaying ? 'rotating' : ''}`}>
+      <div className={`cd-container ${isPlaying ? '' : ''}`}>
         <img className="cd" src={videoMetadata.thumbnail} alt="Album Art" />
       </div>
 
