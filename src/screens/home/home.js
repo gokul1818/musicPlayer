@@ -6,6 +6,7 @@ import cdPlayer from "../../assets/gif/cdPlayer.gif";
 import { db, doc, onSnapshot, setDoc } from '../../firebase'; // Import Firebase Firestore functions
 import axios from 'axios'; // Import axios for API requests
 import './styles.css'; // Import CSS for styling
+import { debounce } from 'lodash';
 
 function Home() {
   const playerRef = useRef(null);
@@ -55,10 +56,20 @@ function Home() {
   }, [isReady]);
 
   useEffect(() => {
+    // Create a debounced version of the search function
+    const debouncedSearch = debounce((query) => searchYouTube(query), 500);
+
+    // Invoke the debounced function
     if (searchQuery) {
-      searchYouTube(searchQuery);
+      debouncedSearch(searchQuery);
     }
+
+    // Cleanup on component unmount or when searchQuery changes
+    return () => {
+      debouncedSearch.cancel();
+    };
   }, [searchQuery]);
+
 
   const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
     try {
@@ -205,8 +216,8 @@ function Home() {
               <div key={result.id.videoId} className='d-flex flex-column my-2'>
                 <div className='d-flex'>
 
-                  <img style={{ width: "50px" ,height:"50px", borderRadius:"50%",objectFit:"cover" }} src={result.snippet.thumbnails.default.url} alt={result.snippet.title} />
-                  <p  className='ms-2' style={{fontSize:"14px"}}>{result.snippet.title}</p>
+                  <img style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} src={result.snippet.thumbnails.default.url} alt={result.snippet.title} />
+                  <p className='ms-2' style={{ fontSize: "14px" }}>{result.snippet.title}</p>
                 </div>
                 <div className='d-flex mt-2'>
 
@@ -284,7 +295,10 @@ function Home() {
         <ul>
           {playlist.map((item) => (
             <li key={item.id.videoId}>
-              <p>{item.snippet.title}</p>
+              <div className='d-flex'>
+                <img style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} src={item.snippet.thumbnails.default.url} alt={item.snippet.title} />
+                <p className='ms-2' style={{ fontSize: "14px" }}>{item.snippet.title}</p>
+              </div>
             </li>
           ))}
         </ul>
