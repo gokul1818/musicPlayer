@@ -140,14 +140,14 @@ function Home() {
           videoId={videoId}
           opts={{
             height: '360',
-            width: '640', // Updated to a more reasonable value
+            width: '0', // Updated to a more reasonable value
             playerVars: {
               autoplay: 1,
               controls: 0,
             },
           }}
           onReady={onReady}
-        // onStateChange={onStateChange}
+        onStateChange={onStateChange}
         />
       </div>
 
