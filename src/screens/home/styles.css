@@ -36,13 +36,11 @@
 
 .youtube-player-container {
   position: relative;
-  width: 200px;
-  /* or adjust as needed */
+  width: 0%;
   height: 0px;
-  /* or adjust as needed */
-  background-color: #000;
-  /* Hide the player */
+  background-color: transparent;
   visibility: hidden;
+  cursor: none;
 }
 
 .player-controls {
@@ -154,6 +152,22 @@
 
 .progress-bar {
   height: 100%;
-  background-color: #61dafb !important;
+  background-color: #88D4B7 !important;
   border-radius: 5px;
+}
+.control-button1{
+  background: none;
+  border: none;
+  color: #ffffff;
+  margin: 0 10px;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 2rem;
+  background-color: #88D4B7;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

@@ -3,7 +3,7 @@ import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
-import { db, doc, onSnapshot, setDoc, updateDoc, deleteDoc } from '../../firebase'; // Import Firebase Firestore functions
+import { db, doc, onSnapshot, setDoc } from '../../firebase'; // Import Firebase Firestore functions
 import axios from 'axios'; // Import axios for API requests
 import './styles.css'; // Import CSS for styling
 import { debounce } from 'lodash';
@@ -18,7 +18,7 @@ function Home() {
   const [currentTime, setCurrentTime] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [selectedVideoId, setSelectedVideoId] = useState(''); // Default video ID
+  const [selectedVideoId, setSelectedVideoId] = useState('');
   const [playlist, setPlaylist] = useState([]);
   const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
   const playbackDocRef = doc(db, 'playbackState', 'current');
@@ -31,8 +31,9 @@ function Home() {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
-        setSelectedVideoId(data?.videoId)
-        setVideoMetadata({ title: data?.title, thumbnail: data?.thumbnail, })
+        setSelectedVideoId(data.videoId);
+        setVideoMetadata({ title: data.title, thumbnail: data.thumbnail });
+
         if (playerRef.current && isReady) {
           if (data.isMuted) {
             playerRef.current.mute();
@@ -85,7 +86,6 @@ function Home() {
         thumbnail,
         videoId
       });
-
     } catch (error) {
       console.error("Error updating playback state:", error);
     }
@@ -102,7 +102,6 @@ function Home() {
   const onReady = (event) => {
     playerRef.current = event.target;
     event.target.pauseVideo();
-
     setVideoDuration(event.target.getDuration());
 
     if (selectedVideoId) {
@@ -113,9 +112,7 @@ function Home() {
           thumbnail: video.snippet.thumbnails.default.url,
         };
         setVideoMetadata(newMetadata);
-
-        // Update Firestore with new video metadata
-        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
+        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, selectedVideoId);
       }
     }
   };
@@ -132,7 +129,7 @@ function Home() {
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
       const current = playerRef.current.getCurrentTime();
-      updatePlaybackState(false, current, isMuted, videoMetadata.title, videoMetadata.thumbnail, videoId);
+      updatePlaybackState(false, current, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     }
   };
 
@@ -140,7 +137,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.playVideo();
-      updatePlaybackState(true, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, videoId);
+      updatePlaybackState(true, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     }
   };
 
@@ -148,7 +145,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.pauseVideo();
-      updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, videoId);
+      updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     }
   };
 
@@ -158,8 +155,7 @@ function Home() {
       playerRef.current.pauseVideo();
       setVideoDuration(playerRef.current.getDuration());
       setIsReady(true);
-      const video = playlist.find((result) => result.id.videoId === selectedVideoId, videoId);
-
+      const video = playlist.find((result) => result.id.videoId === selectedVideoId);
       if (video) {
         const newMetadata = {
           title: video.snippet.title,
@@ -167,8 +163,6 @@ function Home() {
         };
         setVideoMetadata(newMetadata);
         playerRef.current.pauseVideo();
-
-        // updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
       }
     }
   };
@@ -177,7 +171,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.mute();
       setIsMuted(true);
-      updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, videoId);
+      updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     }
   };
 
@@ -185,7 +179,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.unMute();
       setIsMuted(false);
-      updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, videoId);
+      updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     }
   };
 
@@ -215,18 +209,13 @@ function Home() {
     setIsReady(true);
     setSelectedVideoId(videoId);
     setSearchQuery('');
-
-    // Update video metadata for the selected video
     const video = searchResults.find((result) => result.id.videoId === videoId);
-
     if (video) {
       const newMetadata = {
         title: video.snippet.title,
         thumbnail: video.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-
-      // Update Firestore with new video metadata
       updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
     }
   };
@@ -242,33 +231,29 @@ function Home() {
     }
   };
 
-  const handlePlayNext = () => {
+  const handlePlayNext = (item) => {
     if (playlist.length > 0) {
       const nextVideo = playlist[0];
-      setSelectedVideoId(nextVideo.id.videoId);
-      // Update video metadata for the selected video
+      setSelectedVideoId(item.id.videoId);
+      setIsReady(true);
       const newMetadata = {
-        title: nextVideo.snippet.title,
-        thumbnail: nextVideo.snippet.thumbnails.default.url,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-
-      // Update Firestore with new video metadata
-      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
-
-      // Remove the played video from playlist
+      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, item.id.videoId);
+      playerRef.current.playVideo();
       setPlaylist((prevPlaylist) => {
         const updatedPlaylist = prevPlaylist.slice(1);
         updatePlaylistInFirestore(updatedPlaylist);
         return updatedPlaylist;
       });
-      handleReady()
     }
   };
 
   const videoId = selectedVideoId;
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
-  console.log(progressPercent)
+
   return (
     <div className="home-container">
       <header className="player-header">
@@ -309,7 +294,7 @@ function Home() {
       )}
 
       <div className={`cd-container ${isPlaying ? '' : ''}`}>
-        <img className="cd" src={videoMetadata.thumbnail} alt="Album Art" />
+        <img className="cd" src={videoMetadata.thumbnail || cdPlayer} alt="Album Art" />
       </div>
 
       <div className="youtube-player-container">
@@ -331,27 +316,27 @@ function Home() {
       {isReady ? (
         <div className="player-controls">
           {!isPlaying ? (
-            <button className="control-button" onClick={() => handlePlay()}>
+            <button className="control-button" onClick={handlePlay}>
               <FontAwesomeIcon icon={faPlay} />
             </button>
           ) : (
-            <button className="control-button" onClick={() => handlePause()}>
+            <button className="control-button" onClick={handlePause}>
               <FontAwesomeIcon icon={faPause} />
             </button>
           )}
           {!isMuted ? (
-            <button className="control-button" onClick={() => handleMute()}>
+            <button className="control-button" onClick={handleMute}>
               <FontAwesomeIcon icon={faVolumeUp} />
             </button>
           ) : (
-            <button className="control-button" onClick={() => handleUnmute()}>
+            <button className="control-button" onClick={handleUnmute}>
               <FontAwesomeIcon icon={faVolumeMute} />
             </button>
           )}
         </div>
       ) : (
         <div className="player-controls">
-          <button className="control-button" onClick={() => handleReady()}>
+          <button className="control-button" onClick={handleReady}>
             <p style={{ margin: "0px", fontSize: "18px" }}>
               <FontAwesomeIcon icon={faSignInAlt} fontSize={18} /> JOIN
             </p>
@@ -371,18 +356,18 @@ function Home() {
         <ul>
           {playlist.map((item) => (
             <li key={item.id.videoId}>
-              <div className='d-flex'>
-                <img style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} src={item.snippet.thumbnails.default.url} alt={item.snippet.title} />
-                <p className='ms-2' style={{ fontSize: "14px" }}>{item.snippet.title}</p>
+              <div className='d-flex justify-content-between align-items-center'>
+                <div className='d-flex align-items-center w-75'>
+                  <img style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} src={item.snippet.thumbnails.default.url} alt={item.snippet.title} />
+                  <p className='ms-2 mb-0' style={{ fontSize: "14px" }}>{item.snippet.title}</p>
+                </div>
+                <button className="control-button1" onClick={() => handlePlayNext(item)}>
+                  <FontAwesomeIcon icon={faPlay} fontSize={18} />
+                </button>
               </div>
             </li>
           ))}
         </ul>
-        {playlist.length > 0 && (
-          <button onClick={() => handlePlayNext()}>
-            Play Next
-          </button>
-        )}
       </div>
     </div>
   );
