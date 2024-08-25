@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faVolumeMute, faVolumeUp } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
 import { db, doc, onSnapshot, setDoc } from '../../firebase'; // Import Firebase Firestore functions
+import axios from 'axios'; // Import axios for API requests
 import './styles.css'; // Import CSS for styling
 
 function Home() {
@@ -14,6 +15,10 @@ function Home() {
   const [isReady, setIsReady] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedVideoId, setSelectedVideoId] = useState('RgOEKdA2mlw'); // Default video ID
+  const [playlist, setPlaylist] = useState([]);
 
   const playbackDocRef = doc(db, 'playbackState', 'current');
 
@@ -48,6 +53,12 @@ function Home() {
       }
     };
   }, [isReady]);
+
+  useEffect(() => {
+    if (searchQuery) {
+      searchYouTube(searchQuery);
+    }
+  }, [searchQuery]);
 
   const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
     try {
@@ -98,11 +109,12 @@ function Home() {
       updatePlaybackState(false, currentTime, isMuted);
     }
   };
+
   const handleReady = () => {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.pauseVideo();
-      setIsReady(true)
+      setIsReady(true);
     }
   };
 
@@ -122,8 +134,52 @@ function Home() {
     }
   };
 
+  const searchYouTube = async (query) => {
+    const apiKey = "AIzaSyDx5bncjiKOnbQ_1mz8j6kgwHlKGRWxQIo"; // Replace with your YouTube API key
+    try {
+      const response = await axios.get(`https://www.googleapis.com/youtube/v3/search`, {
+        params: {
+          part: 'snippet',
+          q: query,
+          type: 'video',
+          maxResults: 10,
+          key: apiKey,
+        },
+      });
+      setSearchResults(response.data.items);
+    } catch (error) {
+      console.error("Error searching YouTube:", error);
+    }
+  };
 
-  const videoId = 'RgOEKdA2mlw';
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleVideoSelect = (videoId) => {
+    setIsReady(true)
+    setSelectedVideoId(videoId);
+    setSearchQuery('');
+  };
+
+  const handleAddToQueue = (video) => {
+    setIsReady(true)
+    if (!playlist.some((item) => item.id === video.id.videoId)) {
+      setPlaylist((prevPlaylist) => [...prevPlaylist, video]);
+    }
+  };
+
+  const handlePlayNext = () => {
+    setIsReady(true)
+
+    if (playlist.length > 0) {
+      const nextVideoId = playlist[0].id.videoId;
+      setSelectedVideoId(nextVideoId);
+      setPlaylist((prevPlaylist) => prevPlaylist.slice(1)); // Remove the video from the playlist after playing
+    }
+  };
+
+  const videoId = selectedVideoId;
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
 
   return (
@@ -131,6 +187,44 @@ function Home() {
       <header className="player-header">
         <h1>My Music Player</h1>
       </header>
+
+      <div className="search-container">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="Search..."
+          className='search-bar'
+        />
+      </div>
+
+      {searchResults.length > 0 && (
+        <div className="search-results">
+          <ul>
+            {searchResults.map((result) => (
+              <div key={result.id.videoId} className='d-flex flex-column my-2'>
+                <div className='d-flex'>
+
+                  <img style={{ width: "50px" ,height:"50px", borderRadius:"50%",objectFit:"cover" }} src={result.snippet.thumbnails.default.url} alt={result.snippet.title} />
+                  <p  className='ms-2' style={{fontSize:"14px"}}>{result.snippet.title}</p>
+                </div>
+                <div className='d-flex mt-2'>
+
+                  <button onClick={() => handleVideoSelect(result.id.videoId)}>
+                    <FontAwesomeIcon icon={faPlay} /> PLAY
+                  </button>
+                  <button onClick={() => handleAddToQueue(result)}>
+                    <FontAwesomeIcon icon={faPlus} /> QUEUE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </ul>
+        </div>
+      )}
+
+
+
       <div className={`cd-container ${isPlaying ? 'rotating' : ''}`}>
         <img className="cd" src={cdPlayer} alt="Album Art" />
       </div>
@@ -140,55 +234,65 @@ function Home() {
           videoId={videoId}
           opts={{
             height: '360',
-            width: '0', // Updated to a more reasonable value
+            width: '100',
             playerVars: {
               autoplay: 1,
               controls: 0,
             },
           }}
           onReady={onReady}
-        onStateChange={onStateChange}
+          onStateChange={onStateChange}
         />
       </div>
 
-      {isReady ? <div className="player-controls">
-        {!isPlaying ? (
-          <button className="control-button" onClick={handlePlay}>
-            <FontAwesomeIcon icon={faPlay} />
-          </button>
-        ) : (
-          <button className="control-button" onClick={handlePause}>
-            <FontAwesomeIcon icon={faPause} />
-          </button>
-        )}
-        {!isMuted ? (
-          <button className="control-button" onClick={handleMute}>
-            <FontAwesomeIcon icon={faVolumeUp} />
-          </button>
-        ) : (
-          <button className="control-button" onClick={handleUnmute}>
-            <FontAwesomeIcon icon={faVolumeMute} />
-          </button>
-        )}
-      </div> :
+      {isReady ? (
+        <div className="player-controls">
+          {!isPlaying ? (
+            <button className="control-button" onClick={handlePlay}>
+              <FontAwesomeIcon icon={faPlay} />
+            </button>
+          ) : (
+            <button className="control-button" onClick={handlePause}>
+              <FontAwesomeIcon icon={faPause} />
+            </button>
+          )}
+          {!isMuted ? (
+            <button className="control-button" onClick={handleMute}>
+              <FontAwesomeIcon icon={faVolumeUp} />
+            </button>
+          ) : (
+            <button className="control-button" onClick={handleUnmute}>
+              <FontAwesomeIcon icon={faVolumeMute} />
+            </button>
+          )}
+        </div>
+      ) : (
         <div className="player-controls">
           <button className="control-button" onClick={handleReady}>
-            Join
+            <p style={{ margin: "0px", fontSize: "18px" }}>
+              <FontAwesomeIcon icon={faSignInAlt} fontSize={18} /> JOIN
+            </p>
           </button>
         </div>
-      }
+      )}
 
       <div className="progress-container">
         <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
       </div>
-
       <div className="playlist">
         <h2>Playlist</h2>
         <ul>
-          <li>Track 1 - Artist</li>
-          <li>Track 2 - Artist</li>
-          <li>Track 3 - Artist</li>
+          {playlist.map((item) => (
+            <li key={item.id.videoId}>
+              <p>{item.snippet.title}</p>
+            </li>
+          ))}
         </ul>
+        {playlist.length > 0 && (
+          <button onClick={handlePlayNext}>
+            Play Next
+          </button>
+        )}
       </div>
     </div>
   );
