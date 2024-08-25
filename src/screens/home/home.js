@@ -114,7 +114,7 @@ function Home() {
         setVideoMetadata(newMetadata);
 
         // Update Firestore with new video metadata
-        updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
+        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
       }
     }
   };
@@ -167,7 +167,7 @@ function Home() {
         setVideoMetadata(newMetadata);
 
         // Update Firestore with new video metadata
-        updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
+        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
       }
     }
   };
@@ -253,7 +253,7 @@ function Home() {
       setVideoMetadata(newMetadata);
 
       // Update Firestore with new video metadata
-      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
+      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
 
       // Remove the played video from playlist
       setPlaylist((prevPlaylist) => {
@@ -330,27 +330,27 @@ function Home() {
       {isReady ? (
         <div className="player-controls">
           {!isPlaying ? (
-            <button className="control-button" onClick={handlePlay}>
+            <button className="control-button" onClick={() => handlePlay()}>
               <FontAwesomeIcon icon={faPlay} />
             </button>
           ) : (
-            <button className="control-button" onClick={handlePause}>
+            <button className="control-button" onClick={() => handlePause()}>
               <FontAwesomeIcon icon={faPause} />
             </button>
           )}
           {!isMuted ? (
-            <button className="control-button" onClick={handleMute}>
+            <button className="control-button" onClick={() => handleMute()}>
               <FontAwesomeIcon icon={faVolumeUp} />
             </button>
           ) : (
-            <button className="control-button" onClick={handleUnmute}>
+            <button className="control-button" onClick={() => handleUnmute()}>
               <FontAwesomeIcon icon={faVolumeMute} />
             </button>
           )}
         </div>
       ) : (
         <div className="player-controls">
-          <button className="control-button" onClick={handleReady}>
+          <button className="control-button" onClick={() => handleReady()}>
             <p style={{ margin: "0px", fontSize: "18px" }}>
               <FontAwesomeIcon icon={faSignInAlt} fontSize={18} /> JOIN
             </p>
@@ -378,7 +378,7 @@ function Home() {
           ))}
         </ul>
         {playlist.length > 0 && (
-          <button onClick={handlePlayNext}>
+          <button onClick={() => handlePlayNext()}>
             Play Next
           </button>
         )}
