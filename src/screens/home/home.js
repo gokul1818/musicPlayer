@@ -22,6 +22,7 @@ function Home() {
   const [playlist, setPlaylist] = useState([]);
 
   const playbackDocRef = doc(db, 'playbackState', 'current');
+  const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(playbackDocRef, (docSnapshot) => {
@@ -36,7 +37,6 @@ function Home() {
           } else {
             playerRef.current.unMute();
           }
-
           playerRef.current.seekTo(data.currentTime, true);
           if (data.isPlaying) {
             playerRef.current.playVideo();
@@ -56,20 +56,22 @@ function Home() {
   }, [isReady]);
 
   useEffect(() => {
-    // Create a debounced version of the search function
     const debouncedSearch = debounce((query) => searchYouTube(query), 500);
-
-    // Invoke the debounced function
     if (searchQuery) {
       debouncedSearch(searchQuery);
     }
-
-    // Cleanup on component unmount or when searchQuery changes
-    return () => {
-      debouncedSearch.cancel();
-    };
+    return () => debouncedSearch.cancel();
   }, [searchQuery]);
 
+  useEffect(() => {
+    const unsubscribe = onSnapshot(playlistDocRef, (docSnapshot) => {
+      const data = docSnapshot.data();
+      if (data && data.items) {
+        setPlaylist(data.items);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
     try {
@@ -83,9 +85,17 @@ function Home() {
     }
   };
 
+  const updatePlaylistInFirestore = async (playlist) => {
+    try {
+      await setDoc(playlistDocRef, { items: playlist }, { merge: true });
+    } catch (error) {
+      console.error("Error updating playlist in Firestore:", error);
+    }
+  };
+
   const onReady = (event) => {
     playerRef.current = event.target;
-    event.target.pauseVideo(); // Optionally start with video paused
+    event.target.pauseVideo();
     setVideoDuration(event.target.getDuration());
   };
 
@@ -97,7 +107,7 @@ function Home() {
           const current = playerRef.current.getCurrentTime();
           setCurrentTime(current);
         }
-      }, 1000); // Update every second
+      }, 1000);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
       const current = playerRef.current.getCurrentTime();
@@ -168,25 +178,28 @@ function Home() {
   };
 
   const handleVideoSelect = (videoId) => {
-    setIsReady(true)
+    setIsReady(true);
     setSelectedVideoId(videoId);
     setSearchQuery('');
   };
 
   const handleAddToQueue = (video) => {
-    setIsReady(true)
+    setIsReady(true);
     if (!playlist.some((item) => item.id === video.id.videoId)) {
-      setPlaylist((prevPlaylist) => [...prevPlaylist, video]);
+      const newPlaylist = [...playlist, video];
+      setPlaylist(newPlaylist);
+      updatePlaylistInFirestore(newPlaylist);
     }
   };
 
   const handlePlayNext = () => {
-    setIsReady(true)
-
+    setIsReady(true);
     if (playlist.length > 0) {
       const nextVideoId = playlist[0].id.videoId;
       setSelectedVideoId(nextVideoId);
-      setPlaylist((prevPlaylist) => prevPlaylist.slice(1)); // Remove the video from the playlist after playing
+      const newPlaylist = playlist.slice(1);
+      setPlaylist(newPlaylist);
+      updatePlaylistInFirestore(newPlaylist);
     }
   };
 
@@ -215,12 +228,10 @@ function Home() {
             {searchResults.map((result) => (
               <div key={result.id.videoId} className='d-flex flex-column my-2'>
                 <div className='d-flex'>
-
                   <img style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} src={result.snippet.thumbnails.default.url} alt={result.snippet.title} />
                   <p className='ms-2' style={{ fontSize: "14px" }}>{result.snippet.title}</p>
                 </div>
                 <div className='d-flex mt-2'>
-
                   <button onClick={() => handleVideoSelect(result.id.videoId)}>
                     <FontAwesomeIcon icon={faPlay} /> PLAY
                   </button>
@@ -234,8 +245,6 @@ function Home() {
         </div>
       )}
 
-
-
       <div className={`cd-container ${isPlaying ? 'rotating' : ''}`}>
         <img className="cd" src={cdPlayer} alt="Album Art" />
       </div>
@@ -245,7 +254,7 @@ function Home() {
           videoId={videoId}
           opts={{
             height: '360',
-            width: '100',
+            width: '100%',
             playerVars: {
               autoplay: 1,
               controls: 0,
