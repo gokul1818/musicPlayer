@@ -20,6 +20,7 @@ function Home() {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedVideoId, setSelectedVideoId] = useState('RgOEKdA2mlw'); // Default video ID
   const [playlist, setPlaylist] = useState([]);
+  const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
 
   const playbackDocRef = doc(db, 'playbackState', 'current');
   const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
@@ -97,6 +98,16 @@ function Home() {
     playerRef.current = event.target;
     event.target.pauseVideo();
     setVideoDuration(event.target.getDuration());
+
+    if (selectedVideoId) {
+      const video = playlist.find((result) => result.id.videoId === selectedVideoId);
+      if (video) {
+        setVideoMetadata({
+          title: video.snippet.title,
+          thumbnail: video.snippet.thumbnails.default.url,
+        });
+      }
+    }
   };
 
   const onStateChange = (event) => {
@@ -136,6 +147,14 @@ function Home() {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.pauseVideo();
       setIsReady(true);
+      const video = playlist.find((result) => result.id.videoId === videoId);
+
+      if (video) {
+        setVideoMetadata({
+          title: video.snippet.title,
+          thumbnail: video.snippet.thumbnails.default.url,
+        });
+      }
     }
   };
 
@@ -181,25 +200,37 @@ function Home() {
     setIsReady(true);
     setSelectedVideoId(videoId);
     setSearchQuery('');
+
+    // Update video metadata for the selected video
+    const video = searchResults.find((result) => result.id.videoId === videoId);
+
+    if (video) {
+      setVideoMetadata({
+        title: video.snippet.title,
+        thumbnail: video.snippet.thumbnails.default.url,
+      });
+    }
   };
 
   const handleAddToQueue = (video) => {
     setIsReady(true);
     if (!playlist.some((item) => item.id === video.id.videoId)) {
-      const newPlaylist = [...playlist, video];
-      setPlaylist(newPlaylist);
-      updatePlaylistInFirestore(newPlaylist);
+      setPlaylist((prevPlaylist) => {
+        const updatedPlaylist = [...prevPlaylist, video];
+        updatePlaylistInFirestore(updatedPlaylist);
+        return updatedPlaylist;
+      });
     }
+
   };
 
   const handlePlayNext = () => {
     setIsReady(true);
+
     if (playlist.length > 0) {
       const nextVideoId = playlist[0].id.videoId;
       setSelectedVideoId(nextVideoId);
-      const newPlaylist = playlist.slice(1);
-      setPlaylist(newPlaylist);
-      updatePlaylistInFirestore(newPlaylist);
+      setPlaylist((prevPlaylist) => prevPlaylist.slice(1));
     }
   };
 
@@ -246,7 +277,7 @@ function Home() {
       )}
 
       <div className={`cd-container ${isPlaying ? 'rotating' : ''}`}>
-        <img className="cd" src={cdPlayer} alt="Album Art" />
+        <img className="cd" src={videoMetadata.thumbnail} alt="Album Art" />
       </div>
 
       <div className="youtube-player-container">
@@ -296,9 +327,13 @@ function Home() {
         </div>
       )}
 
+      {videoMetadata.title && (
+        <p className='ms-2' style={{ fontSize: "14px" }}>{videoMetadata.title}</p>
+      )}
       <div className="progress-container">
         <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
       </div>
+
       <div className="playlist">
         <h2>Playlist</h2>
         <ul>

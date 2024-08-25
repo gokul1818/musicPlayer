@@ -120,6 +120,7 @@
   background: radial-gradient(circle, #3b3636 0%, #ffffff7e 100%);
   border: 2px solid #666666;
   position: absolute;
+  object-fit: fill;
   top: 0;
   left: 0;
 }
