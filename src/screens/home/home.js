@@ -8,8 +8,10 @@ import './styles.css'; // Import CSS for styling
 
 function Home() {
   const playerRef = useRef(null);
+  const intervalRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
 
@@ -18,7 +20,7 @@ function Home() {
   useEffect(() => {
     const unsubscribe = onSnapshot(playbackDocRef, (docSnapshot) => {
       const data = docSnapshot.data();
-      if (data) {
+      if (data && isReady) {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
@@ -39,8 +41,13 @@ function Home() {
       }
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      unsubscribe();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isReady]);
 
   const updatePlaybackState = async (isPlaying, currentTime, isMuted) => {
     try {
@@ -63,14 +70,12 @@ function Home() {
   const onStateChange = (event) => {
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
-      const intervalId = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         if (playerRef.current) {
           const current = playerRef.current.getCurrentTime();
           setCurrentTime(current);
         }
       }, 1000); // Update every second
-
-      return () => clearInterval(intervalId);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
       const current = playerRef.current.getCurrentTime();
@@ -93,6 +98,13 @@ function Home() {
       updatePlaybackState(false, currentTime, isMuted);
     }
   };
+  const handleReady = () => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(currentTime, true);
+      playerRef.current.pauseVideo();
+      setIsReady(true)
+    }
+  };
 
   const handleMute = () => {
     if (playerRef.current) {
@@ -109,6 +121,7 @@ function Home() {
       updatePlaybackState(isPlaying, currentTime, false);
     }
   };
+
 
   const videoId = 'RgOEKdA2mlw';
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
@@ -127,18 +140,18 @@ function Home() {
           videoId={videoId}
           opts={{
             height: '360',
-            width: '0', // Updated to a more reasonable value
+            width: '640', // Updated to a more reasonable value
             playerVars: {
               autoplay: 1,
               controls: 0,
             },
           }}
           onReady={onReady}
-          onStateChange={onStateChange}
+        // onStateChange={onStateChange}
         />
       </div>
 
-      <div className="player-controls">
+      {isReady ? <div className="player-controls">
         {!isPlaying ? (
           <button className="control-button" onClick={handlePlay}>
             <FontAwesomeIcon icon={faPlay} />
@@ -157,7 +170,13 @@ function Home() {
             <FontAwesomeIcon icon={faVolumeMute} />
           </button>
         )}
-      </div>
+      </div> :
+        <div className="player-controls">
+          <button className="control-button" onClick={handleReady}>
+            Join
+          </button>
+        </div>
+      }
 
       <div className="progress-container">
         <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
