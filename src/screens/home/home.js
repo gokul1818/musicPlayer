@@ -83,8 +83,9 @@ function Home() {
         isMuted,
         title,
         thumbnail,
-        videoId: videoId
+        videoId
       });
+
     } catch (error) {
       console.error("Error updating playback state:", error);
     }
@@ -114,7 +115,7 @@ function Home() {
         setVideoMetadata(newMetadata);
 
         // Update Firestore with new video metadata
-        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
+        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId          );
       }
     }
   };
@@ -131,7 +132,7 @@ function Home() {
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
       const current = playerRef.current.getCurrentTime();
-      updatePlaybackState(false, current, isMuted, videoMetadata.title, videoMetadata.thumbnail);
+      updatePlaybackState(false, current, isMuted, videoMetadata.title, videoMetadata.thumbnail, videoId);
     }
   };
 
@@ -139,7 +140,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.playVideo();
-      updatePlaybackState(true, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail);
+      updatePlaybackState(true, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, videoId);
     }
   };
 
@@ -147,7 +148,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.pauseVideo();
-      updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail);
+      updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, videoId);
     }
   };
 
@@ -157,7 +158,7 @@ function Home() {
       playerRef.current.pauseVideo();
       setVideoDuration(playerRef.current.getDuration());
       setIsReady(true);
-      const video = playlist.find((result) => result.id.videoId === selectedVideoId);
+      const video = playlist.find((result) => result.id.videoId === selectedVideoId, videoId);
 
       if (video) {
         const newMetadata = {
@@ -167,7 +168,7 @@ function Home() {
         setVideoMetadata(newMetadata);
 
         // Update Firestore with new video metadata
-        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
+        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
       }
     }
   };
@@ -176,7 +177,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.mute();
       setIsMuted(true);
-      updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail);
+      updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, videoId);
     }
   };
 
@@ -184,7 +185,7 @@ function Home() {
     if (playerRef.current) {
       playerRef.current.unMute();
       setIsMuted(false);
-      updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail);
+      updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, videoId);
     }
   };
 
@@ -226,7 +227,7 @@ function Home() {
       setVideoMetadata(newMetadata);
 
       // Update Firestore with new video metadata
-      updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail);
+      updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
     }
   };
 
