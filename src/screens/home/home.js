@@ -27,13 +27,13 @@ function Home() {
   useEffect(() => {
     const unsubscribe = onSnapshot(playbackDocRef, (docSnapshot) => {
       const data = docSnapshot.data();
-      if (data && isReady) {
+      if (data) {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
         setSelectedVideoId(data?.videoId)
         setVideoMetadata({ title: data?.title, thumbnail: data?.thumbnail, })
-        if (playerRef.current) {
+        if (playerRef.current && isReady) {
           if (data.isMuted) {
             playerRef.current.mute();
           } else {
@@ -115,7 +115,7 @@ function Home() {
         setVideoMetadata(newMetadata);
 
         // Update Firestore with new video metadata
-        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId          );
+        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
       }
     }
   };
@@ -166,9 +166,9 @@ function Home() {
           thumbnail: video.snippet.thumbnails.default.url,
         };
         setVideoMetadata(newMetadata);
+        playerRef.current.pauseVideo();
 
-        // Update Firestore with new video metadata
-        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
+        // updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
       }
     }
   };
@@ -319,7 +319,7 @@ function Home() {
             height: '360',
             width: '100%',
             playerVars: {
-              autoplay: 1,
+              autoplay: 0,
               controls: 0,
             },
           }}
