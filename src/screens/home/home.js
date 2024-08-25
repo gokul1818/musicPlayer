@@ -21,7 +21,6 @@ function Home() {
   const [selectedVideoId, setSelectedVideoId] = useState(''); // Default video ID
   const [playlist, setPlaylist] = useState([]);
   const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
-
   const playbackDocRef = doc(db, 'playbackState', 'current');
   const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
 
@@ -76,7 +75,7 @@ function Home() {
     return () => unsubscribe();
   }, []);
 
-  const updatePlaybackState = async (isPlaying, currentTime, isMuted, title, thumbnail) => {
+  const updatePlaybackState = async (isPlaying, currentTime, isMuted, title, thumbnail, videoId) => {
     try {
       await setDoc(playbackDocRef, {
         isPlaying,
@@ -84,7 +83,7 @@ function Home() {
         isMuted,
         title,
         thumbnail,
-        videoId
+        videoId: videoId
       });
     } catch (error) {
       console.error("Error updating playback state:", error);
@@ -126,7 +125,6 @@ function Home() {
       intervalRef.current = setInterval(() => {
         if (playerRef.current) {
           const current = playerRef.current.getCurrentTime();
-          console.log(current)
           setCurrentTime(current);
         }
       }, 1000);
@@ -158,7 +156,6 @@ function Home() {
       playerRef.current.seekTo(currentTime, true);
       playerRef.current.pauseVideo();
       setVideoDuration(playerRef.current.getDuration());
-
       setIsReady(true);
       const video = playlist.find((result) => result.id.videoId === selectedVideoId);
 
@@ -256,7 +253,7 @@ function Home() {
       setVideoMetadata(newMetadata);
 
       // Update Firestore with new video metadata
-      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail);
+      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
 
       // Remove the played video from playlist
       setPlaylist((prevPlaylist) => {
@@ -270,7 +267,7 @@ function Home() {
 
   const videoId = selectedVideoId;
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
-
+  console.log(progressPercent)
   return (
     <div className="home-container">
       <header className="player-header">
