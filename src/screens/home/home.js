@@ -208,7 +208,10 @@ function Home() {
       if (playerRef.current) {
         console.log("Sdf")
         playerRef.current.loadVideoById(nextVideo.id.videoId);
-        playerRef.current.playVideo();
+        setTimeout(() => {
+
+          playerRef.current.playVideo();
+        }, 100);
       }
     }
   };
@@ -298,9 +301,9 @@ function Home() {
   const handlePlayNext = (item) => {
     if (playlist.length > 0) {
       const nextVideoIndex = currentVideoIndex + 1 < playlist.length ? currentVideoIndex + 1 : 0;
-      const nextVideo = playlist[nextVideoIndex];
+      const nextVideo = item
       setSelectedVideoId(nextVideo.id.videoId);
-      setCurrentVideoIndex(nextVideoIndex);
+      // setCurrentVideoIndex(nextVideoIndex);
       setIsReady(true);
       const newMetadata = {
         title: nextVideo.snippet.title,
@@ -308,37 +311,22 @@ function Home() {
       };
       setVideoMetadata(newMetadata);
       updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
-      // playerRef.current.playVideo();
+      playerRef.current.playVideo();
       // setPlaylist((prevPlaylist) => {
       //   const updatedPlaylist = prevPlaylist.slice(1);
       //   updatePlaylistInFirestore(updatedPlaylist);
       //   return updatedPlaylist;
       // });
       if (playerRef.current) {
+        console.log("sdfsdf")
         playerRef.current.loadVideoById(nextVideo.id.videoId);
-        playerRef.current.playVideo();
+        setTimeout(() => {
+
+          playerRef.current.playVideo();
+        }, 100);
       }
     }
   };
-
-
-  // const handleShuffle = () => {
-  //   if (playlist.length > 0) {
-  //     const randomIndex = Math.floor(Math.random() * playlist.length);
-  //     const randomVideo = playlist[randomIndex];
-  //     setSelectedVideoId(randomVideo.id.videoId);
-  //     setCurrentVideoIndex(randomIndex);
-  //     setIsReady(true);
-  //     const newMetadata = {
-  //       title: randomVideo.snippet.title,
-  //       thumbnail: randomVideo.snippet.thumbnails.default.url,
-  //     };
-  //     setVideoMetadata(newMetadata);
-  //     updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, randomVideo.id.videoId);
-  //     playerRef.current.playVideo();
-  //   }
-  // };
-
   const videoId = selectedVideoId;
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
 
@@ -410,7 +398,7 @@ function Home() {
         <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
       </div>
       {isReady ? (
-        <div  className='d-flex'>
+        <div className='d-flex'>
           <div className="player-controls">
 
             {/* <button className="control-button" onClick={handleShuffle}>
