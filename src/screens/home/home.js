@@ -426,11 +426,11 @@ function Home() {
             <FontAwesomeIcon icon={faStepBackward} fontSize={18} />
           </button>
           {!isPlaying ? (
-            <button className="control-button" onClick={handlePlay}>
+            <button className="control-button2" onClick={handlePlay}>
               <FontAwesomeIcon icon={faPlay} fontSize={18} />
             </button>
           ) : (
-            <button className="control-button" onClick={handlePause}>
+            <button className="control-button2" onClick={handlePause}>
               <FontAwesomeIcon icon={faPause} fontSize={18} />
             </button>
           )}
