@@ -48,6 +48,9 @@
   justify-content: center;
   align-items: center;
   margin: 20px 0;
+  background-color: #88D4B7;
+  border-radius: 50px;
+  font-size: 14px;
 }
 
 .control-button {
@@ -57,7 +60,7 @@
   padding: 10px;
   margin: 0 10px;
   cursor: pointer;
-  font-size: 2rem;
+  font-size: 20px;
 }
 
 .search-container {
@@ -80,7 +83,7 @@
 }
 
 .playlist {
-  width: 80%;
+  width: 90%;
   max-width: 600px;
 }
 

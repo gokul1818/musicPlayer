@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus, faRandom, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
 import { db, doc, onSnapshot, setDoc } from '../../firebase'; // Import Firebase Firestore functions
 import axios from 'axios'; // Import axios for API requests
@@ -21,6 +21,9 @@ function Home() {
   const [selectedVideoId, setSelectedVideoId] = useState('');
   const [playlist, setPlaylist] = useState([]);
   const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
+  const [isShuffling, setIsShuffling] = useState(false);
+
   const playbackDocRef = doc(db, 'playbackState', 'current');
   const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
 
@@ -148,7 +151,64 @@ function Home() {
       updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     }
   };
+  const handlePrevious = () => {
+    if (playlist.length > 0) {
+      // Calculate the index of the previous video
+      const prevVideoIndex = currentVideoIndex > 0 ? currentVideoIndex - 1 : playlist.length - 1;
+      const prevVideo = playlist[prevVideoIndex];
 
+      // Update the selected video ID and current video index
+      setSelectedVideoId(prevVideo.id.videoId);
+      setCurrentVideoIndex(prevVideoIndex);
+      setIsReady(true);
+
+      // Update metadata for the previous video
+      const newMetadata = {
+        title: prevVideo.snippet.title,
+        thumbnail: prevVideo.snippet.thumbnails.default.url,
+      };
+      setVideoMetadata(newMetadata);
+
+      // Update playback state in Firestore
+      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
+
+      // Play the previous video
+      if (playerRef.current) {
+        playerRef.current.loadVideoById(prevVideo.id.videoId);
+        playerRef.current.playVideo();
+      }
+    }
+  };
+
+  const handleNext = () => {
+    if (playlist.length > 0) {
+      // Calculate the index of the next video
+      const nextVideoIndex = currentVideoIndex + 1 < playlist.length ? currentVideoIndex + 1 : 0;
+      const nextVideo = playlist[nextVideoIndex];
+      
+      // Update the selected video ID and current video index
+      setSelectedVideoId(nextVideo.id.videoId);
+      setCurrentVideoIndex(nextVideoIndex);
+      setIsReady(true);
+      
+      // Update metadata for the next video
+      const newMetadata = {
+        title: nextVideo.snippet.title,
+        thumbnail: nextVideo.snippet.thumbnails.default.url,
+      };
+      setVideoMetadata(newMetadata);
+      
+      // Update playback state in Firestore
+      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
+      
+      // Play the next video
+      if (playerRef.current) {
+        playerRef.current.loadVideoById(nextVideo.id.videoId);
+        playerRef.current.playVideo();
+      }
+    }
+  };
+  
   const handleReady = () => {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
@@ -233,21 +293,57 @@ function Home() {
 
   const handlePlayNext = (item) => {
     if (playlist.length > 0) {
-      const nextVideo = playlist[0];
-      setSelectedVideoId(item.id.videoId);
+      const nextVideoIndex = currentVideoIndex + 1 < playlist.length ? currentVideoIndex + 1 : 0;
+      const nextVideo = playlist[nextVideoIndex];
+      setSelectedVideoId(nextVideo.id.videoId);
+      setCurrentVideoIndex(nextVideoIndex);
       setIsReady(true);
       const newMetadata = {
-        title: item.snippet.title,
-        thumbnail: item.snippet.thumbnails.default.url,
+        title: nextVideo.snippet.title,
+        thumbnail: nextVideo.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, item.id.videoId);
+      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
       playerRef.current.playVideo();
       setPlaylist((prevPlaylist) => {
         const updatedPlaylist = prevPlaylist.slice(1);
         updatePlaylistInFirestore(updatedPlaylist);
         return updatedPlaylist;
       });
+    }
+  };
+
+  const handlePlayPrevious = () => {
+    if (playlist.length > 0) {
+      const prevVideoIndex = currentVideoIndex > 0 ? currentVideoIndex - 1 : playlist.length - 1;
+      const prevVideo = playlist[prevVideoIndex];
+      setSelectedVideoId(prevVideo.id.videoId);
+      setCurrentVideoIndex(prevVideoIndex);
+      setIsReady(true);
+      const newMetadata = {
+        title: prevVideo.snippet.title,
+        thumbnail: prevVideo.snippet.thumbnails.default.url,
+      };
+      setVideoMetadata(newMetadata);
+      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
+      playerRef.current.playVideo();
+    }
+  };
+
+  const handleShuffle = () => {
+    if (playlist.length > 0) {
+      const randomIndex = Math.floor(Math.random() * playlist.length);
+      const randomVideo = playlist[randomIndex];
+      setSelectedVideoId(randomVideo.id.videoId);
+      setCurrentVideoIndex(randomIndex);
+      setIsReady(true);
+      const newMetadata = {
+        title: randomVideo.snippet.title,
+        thumbnail: randomVideo.snippet.thumbnails.default.url,
+      };
+      setVideoMetadata(newMetadata);
+      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, randomVideo.id.videoId);
+      playerRef.current.playVideo();
     }
   };
 
@@ -313,24 +409,42 @@ function Home() {
         />
       </div>
 
+
+
+      {videoMetadata.title && (
+        <p className='ms-2' style={{ fontSize: "14px" }}>{videoMetadata.title}</p>
+      )}
+      <div className="progress-container">
+        <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
+      </div>
       {isReady ? (
         <div className="player-controls">
+          <button className="control-button" onClick={handleShuffle}>
+            <FontAwesomeIcon icon={faRandom} fontSize={18} />
+          </button>
+          <button className="control-button" onClick={handlePrevious}>
+            <FontAwesomeIcon icon={faStepBackward} fontSize={18} />
+          </button>
           {!isPlaying ? (
             <button className="control-button" onClick={handlePlay}>
-              <FontAwesomeIcon icon={faPlay} />
+              <FontAwesomeIcon icon={faPlay} fontSize={18} />
             </button>
           ) : (
             <button className="control-button" onClick={handlePause}>
-              <FontAwesomeIcon icon={faPause} />
+              <FontAwesomeIcon icon={faPause} fontSize={18} />
             </button>
           )}
+          <button className="control-button" onClick={handleNext}>
+            <FontAwesomeIcon icon={faStepForward} fontSize={18} />
+          </button>
+
           {!isMuted ? (
             <button className="control-button" onClick={handleMute}>
-              <FontAwesomeIcon icon={faVolumeUp} />
+              <FontAwesomeIcon icon={faVolumeUp} fontSize={18} />
             </button>
           ) : (
             <button className="control-button" onClick={handleUnmute}>
-              <FontAwesomeIcon icon={faVolumeMute} />
+              <FontAwesomeIcon icon={faVolumeMute} fontSize={18} />
             </button>
           )}
         </div>
@@ -343,14 +457,6 @@ function Home() {
           </button>
         </div>
       )}
-
-      {videoMetadata.title && (
-        <p className='ms-2' style={{ fontSize: "14px" }}>{videoMetadata.title}</p>
-      )}
-      <div className="progress-container">
-        <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
-      </div>
-
       <div className="playlist">
         <h2>Playlist</h2>
         <ul>
