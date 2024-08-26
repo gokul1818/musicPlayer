@@ -131,8 +131,11 @@ function Home() {
       }, 1000);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
-      const current = playerRef.current.getCurrentTime();
-      updatePlaybackState(false, current, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
+      // const current = playerRef.current.getCurrentTime();
+      // updatePlaybackState(false, current, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
+    }
+    else if (event.data === YouTube.PlayerState.ENDED) {
+      handleNext(); // Automatically play the next song when the current one ends
     }
   };
 
@@ -185,22 +188,22 @@ function Home() {
       // Calculate the index of the next video
       const nextVideoIndex = currentVideoIndex + 1 < playlist.length ? currentVideoIndex + 1 : 0;
       const nextVideo = playlist[nextVideoIndex];
-      
+
       // Update the selected video ID and current video index
       setSelectedVideoId(nextVideo.id.videoId);
       setCurrentVideoIndex(nextVideoIndex);
       setIsReady(true);
-      
+
       // Update metadata for the next video
       const newMetadata = {
         title: nextVideo.snippet.title,
         thumbnail: nextVideo.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-      
+
       // Update playback state in Firestore
       updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
-      
+
       // Play the next video
       if (playerRef.current) {
         playerRef.current.loadVideoById(nextVideo.id.videoId);
@@ -208,7 +211,7 @@ function Home() {
       }
     }
   };
-  
+
   const handleReady = () => {
     if (playerRef.current) {
       playerRef.current.seekTo(currentTime, true);
@@ -304,48 +307,36 @@ function Home() {
       };
       setVideoMetadata(newMetadata);
       updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
-      playerRef.current.playVideo();
-      setPlaylist((prevPlaylist) => {
-        const updatedPlaylist = prevPlaylist.slice(1);
-        updatePlaylistInFirestore(updatedPlaylist);
-        return updatedPlaylist;
-      });
+      // playerRef.current.playVideo();
+      // setPlaylist((prevPlaylist) => {
+      //   const updatedPlaylist = prevPlaylist.slice(1);
+      //   updatePlaylistInFirestore(updatedPlaylist);
+      //   return updatedPlaylist;
+      // });
+      if (playerRef.current) {
+        playerRef.current.loadVideoById(nextVideo.id.videoId);
+        playerRef.current.playVideo();
+      }
     }
   };
 
-  const handlePlayPrevious = () => {
-    if (playlist.length > 0) {
-      const prevVideoIndex = currentVideoIndex > 0 ? currentVideoIndex - 1 : playlist.length - 1;
-      const prevVideo = playlist[prevVideoIndex];
-      setSelectedVideoId(prevVideo.id.videoId);
-      setCurrentVideoIndex(prevVideoIndex);
-      setIsReady(true);
-      const newMetadata = {
-        title: prevVideo.snippet.title,
-        thumbnail: prevVideo.snippet.thumbnails.default.url,
-      };
-      setVideoMetadata(newMetadata);
-      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
-      playerRef.current.playVideo();
-    }
-  };
 
-  const handleShuffle = () => {
-    if (playlist.length > 0) {
-      const randomIndex = Math.floor(Math.random() * playlist.length);
-      const randomVideo = playlist[randomIndex];
-      setSelectedVideoId(randomVideo.id.videoId);
-      setCurrentVideoIndex(randomIndex);
-      setIsReady(true);
-      const newMetadata = {
-        title: randomVideo.snippet.title,
-        thumbnail: randomVideo.snippet.thumbnails.default.url,
-      };
-      setVideoMetadata(newMetadata);
-      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, randomVideo.id.videoId);
-      playerRef.current.playVideo();
-    }
-  };
+  // const handleShuffle = () => {
+  //   if (playlist.length > 0) {
+  //     const randomIndex = Math.floor(Math.random() * playlist.length);
+  //     const randomVideo = playlist[randomIndex];
+  //     setSelectedVideoId(randomVideo.id.videoId);
+  //     setCurrentVideoIndex(randomIndex);
+  //     setIsReady(true);
+  //     const newMetadata = {
+  //       title: randomVideo.snippet.title,
+  //       thumbnail: randomVideo.snippet.thumbnails.default.url,
+  //     };
+  //     setVideoMetadata(newMetadata);
+  //     updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, randomVideo.id.videoId);
+  //     playerRef.current.playVideo();
+  //   }
+  // };
 
   const videoId = selectedVideoId;
   const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
@@ -418,25 +409,28 @@ function Home() {
         <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
       </div>
       {isReady ? (
-        <div className="player-controls">
-          <button className="control-button" onClick={handleShuffle}>
+        <div  className='d-flex'>
+          <div className="player-controls">
+
+            {/* <button className="control-button" onClick={handleShuffle}>
             <FontAwesomeIcon icon={faRandom} fontSize={18} />
-          </button>
-          <button className="control-button" onClick={handlePrevious}>
-            <FontAwesomeIcon icon={faStepBackward} fontSize={18} />
-          </button>
-          {!isPlaying ? (
-            <button className="control-button2" onClick={handlePlay}>
-              <FontAwesomeIcon icon={faPlay} fontSize={18} />
+          </button> */}
+            <button className="control-button" onClick={handlePrevious}>
+              <FontAwesomeIcon icon={faStepBackward} fontSize={18} />
             </button>
-          ) : (
-            <button className="control-button2" onClick={handlePause}>
-              <FontAwesomeIcon icon={faPause} fontSize={18} />
+            {!isPlaying ? (
+              <button className="control-button2" onClick={handlePlay}>
+                <FontAwesomeIcon icon={faPlay} fontSize={18} />
+              </button>
+            ) : (
+              <button className="control-button2" onClick={handlePause}>
+                <FontAwesomeIcon icon={faPause} fontSize={18} />
+              </button>
+            )}
+            <button className="control-button" onClick={handleNext}>
+              <FontAwesomeIcon icon={faStepForward} fontSize={18} />
             </button>
-          )}
-          <button className="control-button" onClick={handleNext}>
-            <FontAwesomeIcon icon={faStepForward} fontSize={18} />
-          </button>
+          </div>
 
           {!isMuted ? (
             <button className="control-button" onClick={handleMute}>
@@ -457,6 +451,7 @@ function Home() {
           </button>
         </div>
       )}
+
       <div className="playlist">
         <h2>Playlist</h2>
         <ul>
