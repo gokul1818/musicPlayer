@@ -206,6 +206,7 @@ function Home() {
 
       // Play the next video
       if (playerRef.current) {
+        console.log("Sdf")
         playerRef.current.loadVideoById(nextVideo.id.videoId);
         playerRef.current.playVideo();
       }
