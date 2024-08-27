@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus, faRandom, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
@@ -22,22 +22,22 @@ function Home() {
   const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
   const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
   const [isShuffling, setIsShuffling] = useState(false);
+  const [playerReady, setPlayerReady] = useState(null);
+  const intervalRef = useRef(null);
 
   const playbackDocRef = doc(db, 'playbackState', 'current');
   const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
 
   useEffect(() => {
-    // Subscribe to the Firestore document for playback state updates
     const unsubscribe = onSnapshot(playbackDocRef, (docSnapshot) => {
       const data = docSnapshot.data();
-      if (data) {
+      if (data && playerReady) {
         setIsPlaying(data.isPlaying);
         setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
         setSelectedVideoId(data.videoId);
         setVideoMetadata({ title: data.title, thumbnail: data.thumbnail });
 
-        // Ensure the player is available and then update its state
         const updatePlayerState = () => {
           const player = window.YT?.get('player');
           if (player) {
@@ -51,18 +51,14 @@ function Home() {
           }
         };
 
-        // Use setTimeout to ensure the player is fully loaded before updating
         setTimeout(updatePlayerState, 1000); // Adjust the delay as needed
       }
     });
 
-    // Cleanup subscription on component unmount
     return () => {
       unsubscribe();
     };
-  }, []); // Dependency array left empty to run only on mount
-
-
+  }, [playerReady]);
 
   useEffect(() => {
     const debouncedSearch = debounce((query) => searchYouTube(query), 500);
@@ -107,6 +103,7 @@ function Home() {
 
   const onReady = (event) => {
     const player = event.target;
+    setPlayerReady(event.target);
     player.pauseVideo();  // Ensure the video is paused when ready
     setVideoDuration(player.getDuration());
 
@@ -118,48 +115,80 @@ function Home() {
           thumbnail: video.snippet.thumbnails.default.url,
         };
         setVideoMetadata(newMetadata);
-        // updatePlaybackState(true, isMuted, newMetadata.title, newMetadata.thumbnail, selectedVideoId);
       }
     }
     setIsReady(true);
   };
 
+  // const onStateChange = (event) => {
+  //   const player = event.target;
+  //   if (event.data === YouTube.PlayerState.PLAYING) {
+  //     setIsPlaying(true);
+  //     setInterval(() => {
+  //       const current = player.getCurrentTime();
+  //       setCurrentTime(current);
+  //     }, 1000);
+  //   } else if (event.data === YouTube.PlayerState.PAUSED) {
+  //     setIsPlaying(false);
+  //   } else if (event.data === YouTube.PlayerState.ENDED) {
+  //     handleNext(); // Automatically play the next song when the current one ends
+  //   }
+  // };
   const onStateChange = (event) => {
     const player = event.target;
+  
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
-      setInterval(() => {
+  
+      // Clear any existing interval to avoid multiple intervals running
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+  
+      intervalRef.current = setInterval(() => {
         const current = player.getCurrentTime();
         setCurrentTime(current);
       }, 1000);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
+  
+      // Clear interval when paused
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     } else if (event.data === YouTube.PlayerState.ENDED) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       handleNext(); // Automatically play the next song when the current one ends
     }
   };
+  
+  useEffect(() => {
+    // Clear interval on component unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+  
 
   const handlePlay = () => {
     setIsPlaying(true);
-    // const player = window.YT.get('player'); // Ensure you have a reference to the player
-    // if (player) {
-    //   player.playVideo();
-    // }
     updatePlaybackState(true, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
   };
 
   const handlePause = () => {
     setIsPlaying(false);
-    // const player = window.YT.get('player');
-    // if (player) {
-    //   player.pauseVideo();
-    // }
     updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
   };
 
   const handlePrevious = () => {
     if (playlist.length > 0) {
-      setCurrentTime(0)
+      setCurrentTime(0);
       const prevVideoIndex = currentVideoIndex > 0 ? currentVideoIndex - 1 : playlist.length - 1;
       const prevVideo = playlist[prevVideoIndex];
       setSelectedVideoId(prevVideo.id.videoId);
@@ -168,7 +197,6 @@ function Home() {
         title: prevVideo.snippet.title,
         thumbnail: prevVideo.snippet.thumbnails.default.url,
       };
-      setVideoDuration(0)
       setVideoMetadata(newMetadata);
       updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
     }
@@ -176,13 +204,14 @@ function Home() {
 
   const handleNext = () => {
     if (playlist.length > 0) {
+      setCurrentTime(0); // Reset currentTime to 0
       const nextVideoIndex = isShuffling
         ? Math.floor(Math.random() * playlist.length)
         : (currentVideoIndex + 1) % playlist.length;
+
       const nextVideo = playlist[nextVideoIndex];
       if (!nextVideo) return;
-      setCurrentTime(0)
-      setVideoDuration(0)
+      
       setSelectedVideoId(nextVideo.id.videoId);
       setCurrentVideoIndex(nextVideoIndex);
       const newMetadata = {
@@ -265,8 +294,6 @@ function Home() {
     updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, video.id.videoId);
   };
 
-
-
   const opts = {
     height: '360',
     width: '100%',
@@ -325,7 +352,7 @@ function Home() {
           videoId={selectedVideoId}
           opts={opts}
           onReady={onReady}
-          value={currentTime}
+          // value={currentTime}
           onStateChange={onStateChange}
         />
       </div>
@@ -333,6 +360,7 @@ function Home() {
       {videoMetadata.title && (
         <p className='ms-2' style={{ fontSize: "14px" }}>{videoMetadata.title}</p>
       )}
+      {console.log(currentTime, videoDuration)}
       <div className="progress-container">
         <div className="progress-bar" style={{ width: `${(currentTime / videoDuration) * 100}%` }}></div>
       </div>
