@@ -45,9 +45,14 @@ function Home() {
           }
           playerRef.current.seekTo(data.currentTime, true);
           if (data.isPlaying) {
-            playerRef.current.playVideo();
+            setTimeout(() => {
+
+              playerRef.current.playVideo();
+            }, 200)
           } else {
-            playerRef.current.pauseVideo();
+            setTimeout(() => {
+              playerRef.current.pauseVideo();
+            }, 200)
           }
         }
       }
