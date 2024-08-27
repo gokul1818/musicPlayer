@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus, faRandom, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus, faRandom, faStepForward, faStepBackward, faVideoSlash, faVideo } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
 import { db, doc, onSnapshot, setDoc } from '../../firebase';
 import axios from 'axios';
@@ -21,7 +21,7 @@ function Home() {
   const [playlist, setPlaylist] = useState([]);
   const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
   const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
-  const [isShuffling, setIsShuffling] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const [playerReady, setPlayerReady] = useState(null);
   const intervalRef = useRef(null);
 
@@ -136,22 +136,22 @@ function Home() {
   // };
   const onStateChange = (event) => {
     const player = event.target;
-  
+
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
-  
+
       // Clear any existing interval to avoid multiple intervals running
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-  
+
       intervalRef.current = setInterval(() => {
         const current = player.getCurrentTime();
         setCurrentTime(current);
       }, 1000);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
-  
+
       // Clear interval when paused
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -165,7 +165,7 @@ function Home() {
       handleNext(); // Automatically play the next song when the current one ends
     }
   };
-  
+
   useEffect(() => {
     // Clear interval on component unmount
     return () => {
@@ -174,7 +174,7 @@ function Home() {
       }
     };
   }, []);
-  
+
 
   const handlePlay = () => {
     setIsPlaying(true);
@@ -205,13 +205,14 @@ function Home() {
   const handleNext = () => {
     if (playlist.length > 0) {
       setCurrentTime(0); // Reset currentTime to 0
-      const nextVideoIndex = isShuffling
-        ? Math.floor(Math.random() * playlist.length)
-        : (currentVideoIndex + 1) % playlist.length;
+      const nextVideoIndex =
+        //  Math.floor(Math.random() * playlist.length)
+
+        (currentVideoIndex + 1) % playlist.length;
 
       const nextVideo = playlist[nextVideoIndex];
       if (!nextVideo) return;
-      
+
       setSelectedVideoId(nextVideo.id.videoId);
       setCurrentVideoIndex(nextVideoIndex);
       const newMetadata = {
@@ -295,13 +296,21 @@ function Home() {
   };
 
   const opts = {
-    height: '360',
+    height: '100%',
     width: '100%',
     playerVars: {
-      autoplay: 0,
-      controls: 0,
+      autoplay: 1,         // Autoplay the video
+      controls: 0,         // Hide controls
+      showinfo: 0,         // Hide video title and uploader
+      modestbranding: 1,  // Hide YouTube logo
+      rel: 0,             // Prevent related videos from appearing at the end
+      fs: 0,              // Hide fullscreen button
+      iv_load_policy: 3,  // Hide annotations
+      cc_load_policy: 0,  // Hide closed captions
+      enablejsapi: 1      // Enable JavaScript API for player control
     },
   };
+
 
   return (
     <div className="player">
@@ -341,68 +350,80 @@ function Home() {
           </ul>
         </div>
       )}
+      {showVideo &&
+        <div className={`cd-container ${isPlaying ? '' : ''}`}>
+          <img className="cd" src={videoMetadata.thumbnail || cdPlayer} alt="Album Art" />
+        </div>}
 
-      <div className={`cd-container ${isPlaying ? '' : ''}`}>
-        <img className="cd" src={videoMetadata.thumbnail || cdPlayer} alt="Album Art" />
-      </div>
-
-      <div className="youtube-player-container">
+      <div className="youtube-player-container" style={{ visibility: showVideo ? "hidden" : "visible", width: showVideo ? "0px" : "50vw", height: showVideo ? "0px" : "50vw", margin: showVideo ? "0px" : "20px 0px" }}>
         <YouTube
           id='player'
           videoId={selectedVideoId}
           opts={opts}
           onReady={onReady}
-          // value={currentTime}
           onStateChange={onStateChange}
         />
       </div>
 
-      {videoMetadata.title && (
-        <p className='ms-2' style={{ fontSize: "14px" }}>{videoMetadata.title}</p>
-      )}
+      {
+        videoMetadata.title && (
+          <p className='ms-2' style={{ fontSize: "14px" }}>{videoMetadata.title}</p>
+        )
+      }
       {console.log(currentTime, videoDuration)}
       <div className="progress-container">
         <div className="progress-bar" style={{ width: `${(currentTime / videoDuration) * 100}%` }}></div>
       </div>
-      {isReady ? (
-        <div className='d-flex'>
-          <div className="player-controls">
-            <button className="control-button" onClick={handlePrevious}>
-              <FontAwesomeIcon icon={faStepBackward} fontSize={18} />
-            </button>
-            {!isPlaying ? (
-              <button className="control-button2" onClick={handlePlay}>
-                <FontAwesomeIcon icon={faPlay} fontSize={18} />
+      {
+        isReady ? (
+          <div className='d-flex'>
+            {showVideo ? (
+              <button className="control-button" onClick={() => setShowVideo(false)}>
+                <FontAwesomeIcon icon={faVideo} fontSize={18} />
               </button>
             ) : (
-              <button className="control-button2" onClick={handlePause}>
-                <FontAwesomeIcon icon={faPause} fontSize={18} />
+              <button className="control-button" onClick={() => setShowVideo(true)}>
+                <FontAwesomeIcon icon={faVideoSlash} fontSize={18} />
               </button>
             )}
-            <button className="control-button" onClick={handleNext}>
-              <FontAwesomeIcon icon={faStepForward} fontSize={18} />
+            <div className="player-controls">
+              <button className="control-button" onClick={handlePrevious}>
+                <FontAwesomeIcon icon={faStepBackward} fontSize={18} />
+              </button>
+              {!isPlaying ? (
+                <button className="control-button2" onClick={handlePlay}>
+                  <FontAwesomeIcon icon={faPlay} fontSize={18} />
+                </button>
+              ) : (
+                <button className="control-button2" onClick={handlePause}>
+                  <FontAwesomeIcon icon={faPause} fontSize={18} />
+                </button>
+              )}
+              <button className="control-button" onClick={handleNext}>
+                <FontAwesomeIcon icon={faStepForward} fontSize={18} />
+              </button>
+            </div>
+
+            {!isMuted ? (
+              <button className="control-button" onClick={handleMute}>
+                <FontAwesomeIcon icon={faVolumeUp} fontSize={18} />
+              </button>
+            ) : (
+              <button className="control-button" onClick={handleUnmute}>
+                <FontAwesomeIcon icon={faVolumeMute} fontSize={18} />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="player-controls">
+            <button className="control-button" onClick={() => setIsReady(true)}>
+              <p style={{ margin: "0px", fontSize: "18px" }}>
+                <FontAwesomeIcon icon={faSignInAlt} fontSize={18} /> JOIN
+              </p>
             </button>
           </div>
-
-          {!isMuted ? (
-            <button className="control-button" onClick={handleMute}>
-              <FontAwesomeIcon icon={faVolumeUp} fontSize={18} />
-            </button>
-          ) : (
-            <button className="control-button" onClick={handleUnmute}>
-              <FontAwesomeIcon icon={faVolumeMute} fontSize={18} />
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="player-controls">
-          <button className="control-button" onClick={() => setIsReady(true)}>
-            <p style={{ margin: "0px", fontSize: "18px" }}>
-              <FontAwesomeIcon icon={faSignInAlt} fontSize={18} /> JOIN
-            </p>
-          </button>
-        </div>
-      )}
+        )
+      }
 
       <div className="playlist">
         <h2>Playlist</h2>
@@ -422,7 +443,7 @@ function Home() {
           ))}
         </ul>
       </div>
-    </div>
+    </div >
   );
 }
 
