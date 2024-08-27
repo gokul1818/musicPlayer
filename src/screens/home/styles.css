@@ -1,6 +1,6 @@
 /* styles.css */
 
-.home-container {
+.player {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -22,6 +22,7 @@
 .player-header h1 {
   margin: 0;
   font-size: 2rem;
+  color: #666666;
 }
 
 .album-art {
@@ -36,7 +37,7 @@
 
 .youtube-player-container {
   position: relative;
-  width: 0%;
+  width: 10%;
   height: 0px;
   background-color: transparent;
   visibility: hidden;

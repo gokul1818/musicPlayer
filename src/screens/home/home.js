@@ -1,16 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus, faRandom, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
-import { db, doc, onSnapshot, setDoc } from '../../firebase'; // Import Firebase Firestore functions
-import axios from 'axios'; // Import axios for API requests
-import './styles.css'; // Import CSS for styling
+import { db, doc, onSnapshot, setDoc } from '../../firebase';
+import axios from 'axios';
+import './styles.css';
 import { debounce } from 'lodash';
 
 function Home() {
-  const playerRef = useRef(null);
-  const intervalRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -28,7 +26,7 @@ function Home() {
   const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(playbackDocRef, (docSnapshot) => {
+    const unsubscribe = onSnapshot(playbackDocRef, async (docSnapshot) => {
       const data = docSnapshot.data();
       if (data) {
         setIsPlaying(data.isPlaying);
@@ -36,35 +34,31 @@ function Home() {
         setCurrentTime(data.currentTime);
         setSelectedVideoId(data.videoId);
         setVideoMetadata({ title: data.title, thumbnail: data.thumbnail });
+        setTimeout(() => {
+          const player = window.YT?.get('player');
+          if (player) {
+            if (data.isPlaying) {
+              const player = window.YT?.get('player');
+              if (player) {
 
-        if (playerRef.current && isReady) {
-          if (data.isMuted) {
-            playerRef.current.mute();
-          } else {
-            playerRef.current.unMute();
+                player.playVideo();
+              }
+            } else {
+              const player = window.YT?.get('player');
+              if (player) {
+                player.pauseVideo();
+              }
+            }
           }
-          playerRef.current.seekTo(data.currentTime, true);
-          if (data.isPlaying) {
-            setTimeout(() => {
-
-              playerRef.current.playVideo();
-            }, 200)
-          } else {
-            setTimeout(() => {
-              playerRef.current.pauseVideo();
-            }, 200)
-          }
-        }
+        }, 1000); // Adjust the delay as needed
       }
     });
 
     return () => {
       unsubscribe();
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
     };
-  }, [isReady]);
+  }, []);
+
 
   useEffect(() => {
     const debouncedSearch = debounce((query) => searchYouTube(query), 500);
@@ -108,9 +102,10 @@ function Home() {
   };
 
   const onReady = (event) => {
-    playerRef.current = event.target;
-    event.target.pauseVideo();
-    setVideoDuration(event.target.getDuration());
+    const player = event.target;
+    player.pauseVideo();  // Ensure the video is paused when ready
+    setVideoDuration(player.getDuration());
+    setIsReady(true);
 
     if (selectedVideoId) {
       const video = playlist.find((result) => result.id.videoId === selectedVideoId);
@@ -126,133 +121,90 @@ function Home() {
   };
 
   const onStateChange = (event) => {
+    const player = event.target;
     if (event.data === YouTube.PlayerState.PLAYING) {
       setIsPlaying(true);
-      intervalRef.current = setInterval(() => {
-        if (playerRef.current) {
-          const current = playerRef.current.getCurrentTime();
-          setCurrentTime(current);
-        }
+      setInterval(() => {
+        const current = player.getCurrentTime();
+        setCurrentTime(current);
       }, 1000);
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
-      // const current = playerRef.current.getCurrentTime();
-      // updatePlaybackState(false, current, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
-    }
-    else if (event.data === YouTube.PlayerState.ENDED) {
+    } else if (event.data === YouTube.PlayerState.ENDED) {
       handleNext(); // Automatically play the next song when the current one ends
     }
   };
 
   const handlePlay = () => {
-    if (playerRef.current) {
-      playerRef.current.seekTo(currentTime, true);
-      playerRef.current.playVideo();
-      updatePlaybackState(true, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
-    }
+    setIsPlaying(true);
+    // const player = window.YT.get('player'); // Ensure you have a reference to the player
+    // if (player) {
+    //   player.playVideo();
+    // }
+    updatePlaybackState(true, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
   };
 
   const handlePause = () => {
-    if (playerRef.current) {
-      playerRef.current.seekTo(currentTime, true);
-      playerRef.current.pauseVideo();
-      updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
-    }
+    setIsPlaying(false);
+    // const player = window.YT.get('player');
+    // if (player) {
+    //   player.pauseVideo();
+    // }
+    updatePlaybackState(false, currentTime, isMuted, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
   };
+
   const handlePrevious = () => {
     if (playlist.length > 0) {
-      // Calculate the index of the previous video
       const prevVideoIndex = currentVideoIndex > 0 ? currentVideoIndex - 1 : playlist.length - 1;
       const prevVideo = playlist[prevVideoIndex];
-
-      // Update the selected video ID and current video index
       setSelectedVideoId(prevVideo.id.videoId);
       setCurrentVideoIndex(prevVideoIndex);
-      setIsReady(true);
-
-      // Update metadata for the previous video
       const newMetadata = {
         title: prevVideo.snippet.title,
         thumbnail: prevVideo.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-
-      // Update playback state in Firestore
       updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
-
-      // Play the previous video
-      if (playerRef.current) {
-        playerRef.current.loadVideoById(prevVideo.id.videoId);
-        playerRef.current.playVideo();
-      }
+      setIsReady(true);
     }
   };
 
   const handleNext = () => {
     if (playlist.length > 0) {
-      // Calculate the index of the next video
-      const nextVideoIndex = currentVideoIndex + 1 < playlist.length ? currentVideoIndex + 1 : 0;
+      const nextVideoIndex = isShuffling
+        ? Math.floor(Math.random() * playlist.length)
+        : (currentVideoIndex + 1) % playlist.length;
       const nextVideo = playlist[nextVideoIndex];
+      if (!nextVideo) return;
 
-      // Update the selected video ID and current video index
       setSelectedVideoId(nextVideo.id.videoId);
       setCurrentVideoIndex(nextVideoIndex);
-      setIsReady(true);
-
-      // Update metadata for the next video
       const newMetadata = {
         title: nextVideo.snippet.title,
         thumbnail: nextVideo.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-
-      // Update playback state in Firestore
       updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
-
-      // Play the next video
-      if (playerRef.current) {
-        console.log("Sdf")
-        playerRef.current.loadVideoById(nextVideo.id.videoId);
-        setTimeout(() => {
-
-          playerRef.current.playVideo();
-        }, 100);
-      }
-    }
-  };
-
-  const handleReady = () => {
-    if (playerRef.current) {
-      playerRef.current.seekTo(currentTime, true);
-      playerRef.current.pauseVideo();
-      setVideoDuration(playerRef.current.getDuration());
       setIsReady(true);
-      const video = playlist.find((result) => result.id.videoId === selectedVideoId);
-      if (video) {
-        const newMetadata = {
-          title: video.snippet.title,
-          thumbnail: video.snippet.thumbnails.default.url,
-        };
-        setVideoMetadata(newMetadata);
-        playerRef.current.pauseVideo();
-      }
     }
   };
 
   const handleMute = () => {
-    if (playerRef.current) {
-      playerRef.current.mute();
-      setIsMuted(true);
-      updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
+    setIsMuted(true);
+    const player = window.YT.get('player');
+    if (player) {
+      player.mute();
     }
+    updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
   };
 
   const handleUnmute = () => {
-    if (playerRef.current) {
-      playerRef.current.unMute();
-      setIsMuted(false);
-      updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
+    setIsMuted(false);
+    const player = window.YT.get('player');
+    if (player) {
+      player.unMute();
     }
+    updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
   };
 
   const searchYouTube = async (query) => {
@@ -288,55 +240,39 @@ function Home() {
         thumbnail: video.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-      updatePlaybackState(isPlaying, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
+      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, videoId);
     }
   };
 
   const handleAddToQueue = (video) => {
+    const newPlaylist = [...playlist, video];
+    setPlaylist(newPlaylist);
+    updatePlaylistInFirestore(newPlaylist);
+  };
+
+  const handlePlayNext = (video) => {
+    setSelectedVideoId(video.id.videoId);
+    setCurrentVideoIndex(playlist.indexOf(video));
+    const newMetadata = {
+      title: video.snippet.title,
+      thumbnail: video.snippet.thumbnails.default.url,
+    };
+    setVideoMetadata(newMetadata);
+    updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, video.id.videoId);
     setIsReady(true);
-    if (!playlist.some((item) => item.id.videoId === video.id.videoId)) {
-      setPlaylist((prevPlaylist) => {
-        const updatedPlaylist = [...prevPlaylist, video];
-        updatePlaylistInFirestore(updatedPlaylist);
-        return updatedPlaylist;
-      });
-    }
   };
 
-  const handlePlayNext = (item) => {
-    if (playlist.length > 0) {
-      const nextVideoIndex = currentVideoIndex + 1 < playlist.length ? currentVideoIndex + 1 : 0;
-      const nextVideo = item
-      setSelectedVideoId(nextVideo.id.videoId);
-      // setCurrentVideoIndex(nextVideoIndex);
-      setIsReady(true);
-      const newMetadata = {
-        title: nextVideo.snippet.title,
-        thumbnail: nextVideo.snippet.thumbnails.default.url,
-      };
-      setVideoMetadata(newMetadata);
-      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
-      playerRef.current.playVideo();
-      // setPlaylist((prevPlaylist) => {
-      //   const updatedPlaylist = prevPlaylist.slice(1);
-      //   updatePlaylistInFirestore(updatedPlaylist);
-      //   return updatedPlaylist;
-      // });
-      if (playerRef.current) {
-        console.log("sdfsdf")
-        playerRef.current.loadVideoById(nextVideo.id.videoId);
-        setTimeout(() => {
-
-          playerRef.current.playVideo();
-        }, 100);
-      }
-    }
+  const opts = {
+    height: '360',
+    width: '100%',
+    playerVars: {
+      autoplay: 0,
+      controls: 0,
+    },
   };
-  const videoId = selectedVideoId;
-  const progressPercent = videoDuration ? (currentTime / videoDuration) * 100 : 0;
 
   return (
-    <div className="home-container">
+    <div className="player">
       <header className="player-header">
         <h1>My Music Player</h1>
       </header>
@@ -380,35 +316,24 @@ function Home() {
 
       <div className="youtube-player-container">
         <YouTube
-          videoId={videoId}
-          opts={{
-            height: '360',
-            width: '100%',
-            playerVars: {
-              autoplay: 0,
-              controls: 0,
-            },
-          }}
+          id='player'
+          videoId={selectedVideoId}
+          opts={opts}
           onReady={onReady}
+          value={currentTime}
           onStateChange={onStateChange}
         />
       </div>
-
-
 
       {videoMetadata.title && (
         <p className='ms-2' style={{ fontSize: "14px" }}>{videoMetadata.title}</p>
       )}
       <div className="progress-container">
-        <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
+        <div className="progress-bar" style={{ width: `${(currentTime / videoDuration) * 100}%` }}></div>
       </div>
       {isReady ? (
         <div className='d-flex'>
           <div className="player-controls">
-
-            {/* <button className="control-button" onClick={handleShuffle}>
-            <FontAwesomeIcon icon={faRandom} fontSize={18} />
-          </button> */}
             <button className="control-button" onClick={handlePrevious}>
               <FontAwesomeIcon icon={faStepBackward} fontSize={18} />
             </button>
@@ -438,7 +363,7 @@ function Home() {
         </div>
       ) : (
         <div className="player-controls">
-          <button className="control-button" onClick={handleReady}>
+          <button className="control-button" onClick={() => setIsReady(true)}>
             <p style={{ margin: "0px", fontSize: "18px" }}>
               <FontAwesomeIcon icon={faSignInAlt} fontSize={18} /> JOIN
             </p>
