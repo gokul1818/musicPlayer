@@ -40,7 +40,7 @@ function Home() {
             if (data.isPlaying) {
               const player = window.YT?.get('player');
               if (player) {
-
+                player.seekTo(data.currentTime, true);
                 player.playVideo();
               }
             } else {
@@ -261,6 +261,8 @@ function Home() {
     updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, video.id.videoId);
     setIsReady(true);
   };
+
+  
 
   const opts = {
     height: '360',
