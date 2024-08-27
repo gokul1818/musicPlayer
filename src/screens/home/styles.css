@@ -100,6 +100,7 @@
   width: 100%;
   text-align: center;
   margin-top: 10px;
+  display: flex;
 }
 
 .search-bar {
@@ -201,6 +202,22 @@
   font-size: 2rem;
   background-color: #88D4B7;
   border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.control-button-clear{
+  background: none;
+  border: none;
+  color: #ffffff;
+  margin: 0 0px 0px 10px;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 2rem;
+  /* background-color: #88D4B7; */
+  border-radius: 10px;
   width: 40px;
   height: 40px;
   display: flex;

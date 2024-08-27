@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus, faRandom, faStepForward, faStepBackward, faVideoSlash, faVideo } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus, faRandom, faStepForward, faStepBackward, faVideoSlash, faVideo, faDeleteLeft, faTrash, faClose } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
 import { db, doc, onSnapshot, setDoc } from '../../firebase';
 import axios from 'axios';
@@ -33,7 +33,7 @@ function Home() {
       const data = docSnapshot.data();
       if (data && playerReady) {
         setIsPlaying(data.isPlaying);
-        setIsMuted(data.isMuted);
+        // setIsMuted(data.isMuted);
         setCurrentTime(data.currentTime);
         setSelectedVideoId(data.videoId);
         setVideoMetadata({ title: data.title, thumbnail: data.thumbnail });
@@ -294,6 +294,45 @@ function Home() {
     setVideoMetadata(newMetadata);
     updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, video.id.videoId);
   };
+  const handleRemoveList = async (video) => {
+    try {
+      // Filter out the video to remove from the playlist
+      const updatedPlaylist = playlist.filter(item => item.id.videoId !== video.id.videoId);
+
+      // Determine the index of the currently playing video
+      // const currentIndex = playlist.indexOf(video);
+      // const nextIndex = currentIndex >= updatedPlaylist.length ? updatedPlaylist.length - 1 : currentIndex;
+
+      // // Update state
+      // if (updatedPlaylist.length > 0) {
+      //   const nextVideo = updatedPlaylist[nextIndex];
+      //   setSelectedVideoId(nextVideo.id.videoId);
+      //   setCurrentVideoIndex(nextIndex);
+
+      //   // Update video metadata
+      //   const newMetadata = {
+      //     title: nextVideo.snippet.title,
+      //     thumbnail: nextVideo.snippet.thumbnails.default.url,
+      //   };
+      //   setVideoMetadata(newMetadata);
+      //   updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
+      // } else {
+      //   // No videos left in the playlist
+      //   setSelectedVideoId('');
+      //   setVideoMetadata({ title: '', thumbnail: '' });
+      //   updatePlaybackState(false, 0, isMuted, '', '', '');
+      // }
+
+      // Update local state
+      setPlaylist(updatedPlaylist);
+
+      // Update Firestore with the new playlist
+      await updatePlaylistInFirestore(updatedPlaylist);
+    } catch (error) {
+      console.error("Error removing video from playlist:", error);
+    }
+  };
+
 
   const opts = {
     height: '100%',
@@ -326,6 +365,13 @@ function Home() {
           placeholder="Search..."
           className='search-bar'
         />
+        <button className="control-button-clear" onClick={() => {
+          setSearchQuery("")
+          setSearchResults([])
+        }} style={{ background: "#e1686a" }}>
+          <FontAwesomeIcon icon={faClose} fontSize={18} />
+
+        </button>
       </div>
 
       {searchResults.length > 0 && (
@@ -437,6 +483,9 @@ function Home() {
                 </div>
                 <button className="control-button1" onClick={() => handlePlayNext(item)}>
                   <FontAwesomeIcon icon={faPlay} fontSize={18} />
+                </button>
+                <button className="control-button1" onClick={() => handleRemoveList(item)} style={{ background: "#e1686a" }}>
+                  <FontAwesomeIcon icon={faTrash} fontSize={18} />
                 </button>
               </div>
             </li>
