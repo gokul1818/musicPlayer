@@ -164,7 +164,7 @@ function Home() {
         thumbnail: prevVideo.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
+      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
       setIsReady(true);
     }
   };
@@ -184,7 +184,7 @@ function Home() {
         thumbnail: nextVideo.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-      updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
+      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
       setIsReady(true);
     }
   };
