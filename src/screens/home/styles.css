@@ -8,7 +8,7 @@
   color: #ffffff;
   min-height: 100vh;
   font-family: Arial, sans-serif;
-  padding: 20px;
+  padding: 10px;
   width: 100%;
 }
 
@@ -117,7 +117,7 @@
 }
 
 .playlist {
-  width: 90%;
+  width: 100%;
   max-width: 600px;
 }
 
@@ -196,14 +196,14 @@
   background: none;
   border: none;
   color: #ffffff;
-  margin: 0 10px;
+  margin: 0 5px;
   padding: 10px;
   cursor: pointer;
   font-size: 2rem;
   background-color: #88D4B7;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;

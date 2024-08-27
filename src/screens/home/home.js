@@ -475,18 +475,21 @@ function Home() {
         <h2>Playlist</h2>
         <ul>
           {playlist.map((item) => (
-            <li key={item.id.videoId}>
+            <li key={item.id.videoId} style={{ background: item.id.videoId == selectedVideoId ? "#6f9184" : "#20232a " }}>
               <div className='d-flex justify-content-between align-items-center'>
                 <div className='d-flex align-items-center w-75'>
-                  <img style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} src={item.snippet.thumbnails.default.url} alt={item.snippet.title} />
-                  <p className='ms-2 mb-0' style={{ fontSize: "14px" }}>{item.snippet.title}</p>
+                  <img style={{ width: "30px", height: "30px", borderRadius: "50%", objectFit: "cover" }} src={item.snippet.thumbnails.default.url} alt={item.snippet.title} />
+                  <p className='ms-2 mb-0 text-truncate' style={{ fontSize: "14px" }} >{item.snippet.title}</p>
                 </div>
-                <button className="control-button1" onClick={() => handlePlayNext(item)}>
-                  <FontAwesomeIcon icon={faPlay} fontSize={18} />
-                </button>
-                <button className="control-button1" onClick={() => handleRemoveList(item)} style={{ background: "#e1686a" }}>
-                  <FontAwesomeIcon icon={faTrash} fontSize={18} />
-                </button>
+                <div className='d-flex '>
+                  <button className="control-button1" onClick={() => handlePlayNext(item)}>
+                    <FontAwesomeIcon icon={item.id.videoId == selectedVideoId ? faPause : faPlay} fontSize={14} />
+                  </button>
+                  <button className="control-button1" onClick={() => handleRemoveList(item)} style={{ background: "#e1686a" }}>
+                    <FontAwesomeIcon icon={faTrash} fontSize={14} />
+                  </button>
+
+                </div>
               </div>
             </li>
           ))}
