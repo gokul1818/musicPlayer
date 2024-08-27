@@ -7,6 +7,7 @@ import { db, doc, onSnapshot, setDoc } from '../../firebase';
 import axios from 'axios';
 import './styles.css';
 import { debounce } from 'lodash';
+import { updateDoc } from 'firebase/firestore';
 
 function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -83,7 +84,7 @@ function Home() {
 
   const updatePlaybackState = async (isPlaying, currentTime, isMuted, title, thumbnail, videoId) => {
     try {
-      await setDoc(playbackDocRef, {
+      await updateDoc(playbackDocRef, {
         isPlaying,
         currentTime,
         isMuted,
@@ -108,7 +109,6 @@ function Home() {
     const player = event.target;
     player.pauseVideo();  // Ensure the video is paused when ready
     setVideoDuration(player.getDuration());
-    setIsReady(true);
 
     if (selectedVideoId) {
       const video = playlist.find((result) => result.id.videoId === selectedVideoId);
@@ -118,9 +118,10 @@ function Home() {
           thumbnail: video.snippet.thumbnails.default.url,
         };
         setVideoMetadata(newMetadata);
-        updatePlaybackState(false, currentTime, isMuted, newMetadata.title, newMetadata.thumbnail, selectedVideoId);
+        // updatePlaybackState(true, isMuted, newMetadata.title, newMetadata.thumbnail, selectedVideoId);
       }
     }
+    setIsReady(true);
   };
 
   const onStateChange = (event) => {
@@ -158,6 +159,7 @@ function Home() {
 
   const handlePrevious = () => {
     if (playlist.length > 0) {
+      setCurrentTime(0)
       const prevVideoIndex = currentVideoIndex > 0 ? currentVideoIndex - 1 : playlist.length - 1;
       const prevVideo = playlist[prevVideoIndex];
       setSelectedVideoId(prevVideo.id.videoId);
@@ -166,9 +168,8 @@ function Home() {
         title: prevVideo.snippet.title,
         thumbnail: prevVideo.snippet.thumbnails.default.url,
       };
-      setCurrentTime(0)
+      setVideoDuration(0)
       setVideoMetadata(newMetadata);
-      setIsReady(true);
       updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
     }
   };
@@ -180,7 +181,8 @@ function Home() {
         : (currentVideoIndex + 1) % playlist.length;
       const nextVideo = playlist[nextVideoIndex];
       if (!nextVideo) return;
-
+      setCurrentTime(0)
+      setVideoDuration(0)
       setSelectedVideoId(nextVideo.id.videoId);
       setCurrentVideoIndex(nextVideoIndex);
       const newMetadata = {
@@ -188,28 +190,26 @@ function Home() {
         thumbnail: nextVideo.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-      setCurrentTime(0)
-      setIsReady(true);
       updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
     }
   };
 
   const handleMute = () => {
     setIsMuted(true);
+    updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     const player = window.YT.get('player');
     if (player) {
       player.mute();
     }
-    updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
   };
 
   const handleUnmute = () => {
     setIsMuted(false);
+    updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     const player = window.YT.get('player');
     if (player) {
       player.unMute();
     }
-    updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
   };
 
   const searchYouTube = async (query) => {
@@ -235,7 +235,6 @@ function Home() {
   };
 
   const handleVideoSelect = (videoId) => {
-    setIsReady(true);
     setSelectedVideoId(videoId);
     setSearchQuery('');
     const video = searchResults.find((result) => result.id.videoId === videoId);
@@ -264,7 +263,6 @@ function Home() {
     };
     setVideoMetadata(newMetadata);
     updatePlaybackState(false, 0, isMuted, newMetadata.title, newMetadata.thumbnail, video.id.videoId);
-    setIsReady(true);
   };
 
 
