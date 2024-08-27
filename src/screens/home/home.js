@@ -26,7 +26,8 @@ function Home() {
   const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(playbackDocRef, async (docSnapshot) => {
+    // Subscribe to the Firestore document for playback state updates
+    const unsubscribe = onSnapshot(playbackDocRef, (docSnapshot) => {
       const data = docSnapshot.data();
       if (data) {
         setIsPlaying(data.isPlaying);
@@ -34,30 +35,32 @@ function Home() {
         setCurrentTime(data.currentTime);
         setSelectedVideoId(data.videoId);
         setVideoMetadata({ title: data.title, thumbnail: data.thumbnail });
-        setTimeout(() => {
+
+        // Ensure the player is available and then update its state
+        const updatePlayerState = () => {
           const player = window.YT?.get('player');
           if (player) {
+            player.seekTo(data.currentTime, true); // Seek to the specified time
+
             if (data.isPlaying) {
-              const player = window.YT?.get('player');
-              if (player) {
-                player.seekTo(data.currentTime, true);
-                player.playVideo();
-              }
+              player.playVideo(); // Start playing the video if isPlaying is true
             } else {
-              const player = window.YT?.get('player');
-              if (player) {
-                player.pauseVideo();
-              }
+              player.pauseVideo(); // Pause the video if isPlaying is false
             }
           }
-        }, 1000); // Adjust the delay as needed
+        };
+
+        // Use setTimeout to ensure the player is fully loaded before updating
+        setTimeout(updatePlayerState, 1000); // Adjust the delay as needed
       }
     });
 
+    // Cleanup subscription on component unmount
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, []); // Dependency array left empty to run only on mount
+
 
 
   useEffect(() => {
@@ -163,9 +166,10 @@ function Home() {
         title: prevVideo.snippet.title,
         thumbnail: prevVideo.snippet.thumbnails.default.url,
       };
+      setCurrentTime(0)
       setVideoMetadata(newMetadata);
-      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
       setIsReady(true);
+      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, prevVideo.id.videoId);
     }
   };
 
@@ -184,8 +188,9 @@ function Home() {
         thumbnail: nextVideo.snippet.thumbnails.default.url,
       };
       setVideoMetadata(newMetadata);
-      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
+      setCurrentTime(0)
       setIsReady(true);
+      updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
     }
   };
 
@@ -262,7 +267,7 @@ function Home() {
     setIsReady(true);
   };
 
-  
+
 
   const opts = {
     height: '360',
