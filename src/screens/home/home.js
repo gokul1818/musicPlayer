@@ -24,7 +24,7 @@ function Home() {
   const [showVideo, setShowVideo] = useState(true);
   const [playerReady, setPlayerReady] = useState(null);
   const intervalRef = useRef(null);
-
+  const [volume, setVolume] = useState(50);
   const playbackDocRef = doc(db, 'playbackState', 'current');
   const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
 
@@ -47,6 +47,13 @@ function Home() {
               player.playVideo(); // Start playing the video if isPlaying is true
             } else {
               player.pauseVideo(); // Pause the video if isPlaying is false
+            }
+            if (player && isMuted) {
+              player.mute();
+            }
+            else {
+              player.unMute();
+
             }
           }
         };
@@ -88,6 +95,7 @@ function Home() {
         thumbnail,
         videoId
       });
+      console.log("A")
     } catch (error) {
       console.error("Error updating playback state:", error);
     }
@@ -146,9 +154,11 @@ function Home() {
       }
 
       intervalRef.current = setInterval(() => {
+        // updatePlaybackState(isPlaying, current, true, videoMetadata?.title, videoMetadata?.thumbnail, selectedVideoId);
         const current = player.getCurrentTime();
         setCurrentTime(current);
-      }, 1000);
+      }, 100);
+
     } else if (event.data === YouTube.PlayerState.PAUSED) {
       setIsPlaying(false);
 
@@ -334,6 +344,20 @@ function Home() {
   };
 
 
+  const handleVolumeChange = (event) => {
+    const newVolume = event.target.value;
+    setVolume(newVolume);
+    const player = window.YT?.get('player');
+    if (player) {
+      player.setVolume(newVolume);
+    }
+    if (newVolume === '0') {
+      handleMute();
+    } else {
+      handleUnmute();
+    }
+  };
+
   const opts = {
     height: '100%',
     width: '100%',
@@ -397,8 +421,8 @@ function Home() {
         </div>
       )}
       {showVideo &&
-        <div className={`cd-container ${isPlaying ? '' : ''}`}>
-          <img className="cd" src={ cdPlayer} alt="Album Art" />
+        <div className={`cd-container ${isPlaying ? 'rotating' : ''}`}>
+          <img className="cd" src={cdPlayer} alt="Album Art" />
         </div>}
 
       <div className="youtube-player-container" style={{ visibility: showVideo ? "hidden" : "visible", width: showVideo ? "0px" : "50vw", height: showVideo ? "0px" : "50vw", margin: showVideo ? "0px" : "20px 0px" }}>
@@ -406,6 +430,7 @@ function Home() {
           id='player'
           videoId={selectedVideoId}
           opts={opts}
+
           onReady={onReady}
           onStateChange={onStateChange}
         />
@@ -422,7 +447,7 @@ function Home() {
       </div>
       {
         isReady ? (
-          <div className='d-flex'>
+          <div className='d-flex align-items-center position-relative'>
             {showVideo ? (
               <button className="control-button" onClick={() => setShowVideo(false)}>
                 <FontAwesomeIcon icon={faVideo} fontSize={18} />
@@ -459,6 +484,16 @@ function Home() {
                 <FontAwesomeIcon icon={faVolumeMute} fontSize={18} />
               </button>
             )}
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={isMuted ? 0 : volume}
+              onChange={handleVolumeChange}
+              className="volume-slider"
+            // disabled={isMuted} // Disable slider when muted
+            />
+
           </div>
         ) : (
           <div className="player-controls">
