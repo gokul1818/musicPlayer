@@ -443,7 +443,10 @@ function Home() {
           </button>
         </div>
       )}
-
+      <audio controls>
+        <source src={"https://www.jiosaavn.com/song/oru-naalil/OxE5fR1bQmo"} type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
       <div className="playlist">
         <h2>Playlist</h2>
         <ul>

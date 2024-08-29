@@ -21,7 +21,7 @@ function Home() {
   const [playlist, setPlaylist] = useState([]);
   const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
   const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
-  const [showVideo, setShowVideo] = useState(false);
+  const [showVideo, setShowVideo] = useState(true);
   const [playerReady, setPlayerReady] = useState(null);
   const intervalRef = useRef(null);
 
@@ -226,7 +226,7 @@ function Home() {
 
   const handleMute = () => {
     setIsMuted(true);
-    updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
+    // updatePlaybackState(isPlaying, currentTime, true, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     const player = window.YT.get('player');
     if (player) {
       player.mute();
@@ -235,7 +235,7 @@ function Home() {
 
   const handleUnmute = () => {
     setIsMuted(false);
-    updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
+    // updatePlaybackState(isPlaying, currentTime, false, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId);
     const player = window.YT.get('player');
     if (player) {
       player.unMute();
@@ -398,7 +398,7 @@ function Home() {
       )}
       {showVideo &&
         <div className={`cd-container ${isPlaying ? '' : ''}`}>
-          <img className="cd" src={videoMetadata.thumbnail || cdPlayer} alt="Album Art" />
+          <img className="cd" src={ cdPlayer} alt="Album Art" />
         </div>}
 
       <div className="youtube-player-container" style={{ visibility: showVideo ? "hidden" : "visible", width: showVideo ? "0px" : "50vw", height: showVideo ? "0px" : "50vw", margin: showVideo ? "0px" : "20px 0px" }}>
