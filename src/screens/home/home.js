@@ -127,7 +127,7 @@ function Home() {
     }
     setIsReady(true);
   };
-   
+
 
   const onStateChange = (event) => {
     const player = event.target;
@@ -316,6 +316,21 @@ function Home() {
     }
   };
 
+  const handleChangeDuration = (event) => {
+    const time = event.target.value;
+    // const player = window.YT?.get('player');
+    const debouncedSearch = debounce((time) =>
+      updatePlaybackState(true, time, true, videoMetadata.title, videoMetadata.thumbnail, selectedVideoId)
+      , 500);
+    if (time) {
+      debouncedSearch(time);
+    }
+    return () => debouncedSearch.cancel();
+    // if (player) {
+    //   player.seekTo(time);
+    // }
+  };
+
   const opts = {
     height: '100%',
     width: '100%',
@@ -468,6 +483,7 @@ function Home() {
             <FontAwesomeIcon icon={faVolumeMute} fontSize={18} />
           </button>
         )}
+
         <input
           type="range"
           min="0"
@@ -478,6 +494,14 @@ function Home() {
         // disabled={isMuted} // Disable slider when muted
         />
       </div>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={(currentTime / videoDuration) * 100}
+        onChange={handleChangeDuration}
+        className="volume-slider"
+      />
       <div className="playlist">
         <h2>Playlist</h2>
         <ul>
