@@ -1,13 +1,13 @@
+import { faBookmark, faClose, faPause, faPlay, faSignInAlt, faStepBackward, faStepForward, faTrash, faVideo, faVideoSlash, faVolumeMute, faVolumeUp } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import axios from 'axios';
+import { updateDoc } from 'firebase/firestore';
+import { debounce } from 'lodash';
 import React, { useEffect, useRef, useState } from 'react';
 import YouTube from 'react-youtube';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faVolumeMute, faVolumeUp, faSignInAlt, faPlus, faRandom, faStepForward, faStepBackward, faVideoSlash, faVideo, faDeleteLeft, faTrash, faClose } from '@fortawesome/free-solid-svg-icons';
 import cdPlayer from "../../assets/gif/cdPlayer.gif";
 import { db, doc, onSnapshot, setDoc } from '../../firebase';
-import axios from 'axios';
 import './styles.css';
-import { debounce } from 'lodash';
-import { updateDoc } from 'firebase/firestore';
 
 function Home() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -24,7 +24,7 @@ function Home() {
   const [showVideo, setShowVideo] = useState(true);
   const [playerReady, setPlayerReady] = useState(null);
   const intervalRef = useRef(null);
-  const [volume, setVolume] = useState(50);
+  const [volume, setVolume] = useState(100);
   const playbackDocRef = doc(db, 'playbackState', 'current');
   const playlistDocRef = doc(db, 'playlists', 'userPlaylist');
 
@@ -42,7 +42,7 @@ function Home() {
           const player = window.YT?.get('player');
           if (player) {
             player.seekTo(data.currentTime, true); // Seek to the specified time
-
+            player.setVolume(volume);
             if (data.isPlaying) {
               player.playVideo(); // Start playing the video if isPlaying is true
             } else {
@@ -127,21 +127,8 @@ function Home() {
     }
     setIsReady(true);
   };
+   
 
-  // const onStateChange = (event) => {
-  //   const player = event.target;
-  //   if (event.data === YouTube.PlayerState.PLAYING) {
-  //     setIsPlaying(true);
-  //     setInterval(() => {
-  //       const current = player.getCurrentTime();
-  //       setCurrentTime(current);
-  //     }, 1000);
-  //   } else if (event.data === YouTube.PlayerState.PAUSED) {
-  //     setIsPlaying(false);
-  //   } else if (event.data === YouTube.PlayerState.ENDED) {
-  //     handleNext(); // Automatically play the next song when the current one ends
-  //   }
-  // };
   const onStateChange = (event) => {
     const player = event.target;
 
@@ -306,37 +293,8 @@ function Home() {
   };
   const handleRemoveList = async (video) => {
     try {
-      // Filter out the video to remove from the playlist
       const updatedPlaylist = playlist.filter(item => item.id.videoId !== video.id.videoId);
-
-      // Determine the index of the currently playing video
-      // const currentIndex = playlist.indexOf(video);
-      // const nextIndex = currentIndex >= updatedPlaylist.length ? updatedPlaylist.length - 1 : currentIndex;
-
-      // // Update state
-      // if (updatedPlaylist.length > 0) {
-      //   const nextVideo = updatedPlaylist[nextIndex];
-      //   setSelectedVideoId(nextVideo.id.videoId);
-      //   setCurrentVideoIndex(nextIndex);
-
-      //   // Update video metadata
-      //   const newMetadata = {
-      //     title: nextVideo.snippet.title,
-      //     thumbnail: nextVideo.snippet.thumbnails.default.url,
-      //   };
-      //   setVideoMetadata(newMetadata);
-      //   updatePlaybackState(true, 0, isMuted, newMetadata.title, newMetadata.thumbnail, nextVideo.id.videoId);
-      // } else {
-      //   // No videos left in the playlist
-      //   setSelectedVideoId('');
-      //   setVideoMetadata({ title: '', thumbnail: '' });
-      //   updatePlaybackState(false, 0, isMuted, '', '', '');
-      // }
-
-      // Update local state
       setPlaylist(updatedPlaylist);
-
-      // Update Firestore with the new playlist
       await updatePlaylistInFirestore(updatedPlaylist);
     } catch (error) {
       console.error("Error removing video from playlist:", error);
@@ -400,20 +358,23 @@ function Home() {
 
       {searchResults.length > 0 && (
         <div className="search-results">
-          <ul>
+          <ul className='p-0'>
             {searchResults.map((result) => (
               <div key={result.id.videoId} className='d-flex flex-column my-2'>
                 <div className='d-flex'>
                   <img style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} src={result.snippet.thumbnails.default.url} alt={result.snippet.title} />
-                  <p className='ms-2' style={{ fontSize: "14px" }}>{result.snippet.title}</p>
-                </div>
-                <div className='d-flex mt-2'>
-                  <button onClick={() => handleVideoSelect(result.id.videoId)}>
-                    <FontAwesomeIcon icon={faPlay} /> PLAY
-                  </button>
-                  <button onClick={() => handleAddToQueue(result)}>
-                    <FontAwesomeIcon icon={faPlus} /> QUEUE
-                  </button>
+                  <div>
+
+                    <p className='ms-2 mb-0' style={{ fontSize: "14px" }}>{result.snippet.title}</p>
+                    <div className='d-flex '>
+                      <button className="control-button3" onClick={() => handleVideoSelect(result.id.videoId)}>
+                        <FontAwesomeIcon icon={faPlay} fontSize={10} />
+                      </button>
+                      <button className="control-button3" onClick={() => handleAddToQueue(result)}>
+                        <FontAwesomeIcon icon={faBookmark} fontSize={10} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -448,15 +409,7 @@ function Home() {
       {
         isReady ? (
           <div className='d-flex align-items-center position-relative'>
-            {showVideo ? (
-              <button className="control-button" onClick={() => setShowVideo(false)}>
-                <FontAwesomeIcon icon={faVideo} fontSize={18} />
-              </button>
-            ) : (
-              <button className="control-button" onClick={() => setShowVideo(true)}>
-                <FontAwesomeIcon icon={faVideoSlash} fontSize={18} />
-              </button>
-            )}
+
             <div className="player-controls">
               <button className="control-button" onClick={handlePrevious}>
                 <FontAwesomeIcon icon={faStepBackward} fontSize={18} />
@@ -474,7 +427,7 @@ function Home() {
                 <FontAwesomeIcon icon={faStepForward} fontSize={18} />
               </button>
             </div>
-
+            {/* 
             {!isMuted ? (
               <button className="control-button" onClick={handleMute}>
                 <FontAwesomeIcon icon={faVolumeUp} fontSize={18} />
@@ -483,29 +436,48 @@ function Home() {
               <button className="control-button" onClick={handleUnmute}>
                 <FontAwesomeIcon icon={faVolumeMute} fontSize={18} />
               </button>
-            )}
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              className="volume-slider"
-            // disabled={isMuted} // Disable slider when muted
-            />
+            )} */}
 
           </div>
         ) : (
           <div className="player-controls">
-            <button className="control-button" onClick={() => setIsReady(true)}>
+            <button className="control-button" >
               <p style={{ margin: "0px", fontSize: "18px" }}>
-                <FontAwesomeIcon icon={faSignInAlt} fontSize={18} /> JOIN
+                <FontAwesomeIcon icon={faSignInAlt} fontSize={18} /> Loading
               </p>
             </button>
           </div>
         )
       }
-
+      <div className='d-flex align-items-center'>
+        {showVideo ? (
+          <button className="control-button" onClick={() => setShowVideo(false)}>
+            <FontAwesomeIcon icon={faVideo} fontSize={18} />
+          </button>
+        ) : (
+          <button className="control-button" onClick={() => setShowVideo(true)}>
+            <FontAwesomeIcon icon={faVideoSlash} fontSize={18} />
+          </button>
+        )}
+        {!isMuted ? (
+          <button className="control-button" onClick={handleMute}>
+            <FontAwesomeIcon icon={faVolumeUp} fontSize={18} />
+          </button>
+        ) : (
+          <button className="control-button" onClick={handleUnmute}>
+            <FontAwesomeIcon icon={faVolumeMute} fontSize={18} />
+          </button>
+        )}
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={isMuted ? 0 : volume}
+          onChange={handleVolumeChange}
+          className="volume-slider"
+        // disabled={isMuted} // Disable slider when muted
+        />
+      </div>
       <div className="playlist">
         <h2>Playlist</h2>
         <ul>
