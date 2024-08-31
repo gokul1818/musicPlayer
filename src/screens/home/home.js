@@ -18,6 +18,8 @@ function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
+  const [selectedVideoDuration, setSelectedVideoDuration] = useState('');
+  const [selectedVideoTotalDuration, setSelectedVideoTotalDuration] = useState('');
   const [playlist, setPlaylist] = useState([]);
   const [videoMetadata, setVideoMetadata] = useState({ title: '', thumbnail: '' });
   const [currentVideoIndex, setCurrentVideoIndex] = useState(-1);
@@ -108,12 +110,23 @@ function Home() {
       console.error("Error updating playlist in Firestore:", error);
     }
   };
+  const formatDuration = (durationInSeconds) => {
+    // Convert duration to minutes and seconds
+    const minutes = Math.floor(durationInSeconds / 60);
+    const seconds = Math.floor(durationInSeconds % 60);
+    // Format as MM:SS
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+  };
 
   const onReady = (event) => {
     const player = event.target;
     setPlayerReady(event.target);
     player.pauseVideo();  // Ensure the video is paused when ready
     setVideoDuration(player.getDuration());
+    // Convert and format the video duration
+    setSelectedVideoDuration(formatDuration(player.getCurrentTime()))
+    setSelectedVideoTotalDuration(formatDuration(player.getDuration()))
 
     if (selectedVideoId) {
       const video = playlist.find((result) => result.id.videoId === selectedVideoId);
@@ -143,6 +156,7 @@ function Home() {
       intervalRef.current = setInterval(() => {
         // updatePlaybackState(isPlaying, current, true, videoMetadata?.title, videoMetadata?.thumbnail, selectedVideoId);
         const current = player.getCurrentTime();
+        setSelectedVideoDuration(formatDuration(current))
         setCurrentTime(current);
       }, 100);
 
@@ -186,6 +200,8 @@ function Home() {
   const handlePrevious = () => {
     if (playlist.length > 0) {
       setCurrentTime(0);
+      setSelectedVideoTotalDuration("0:00")
+      setSelectedVideoDuration("0:00")
       const prevVideoIndex = currentVideoIndex > 0 ? currentVideoIndex - 1 : playlist.length - 1;
       const prevVideo = playlist[prevVideoIndex];
       setSelectedVideoId(prevVideo.id.videoId);
@@ -201,12 +217,10 @@ function Home() {
 
   const handleNext = () => {
     if (playlist.length > 0) {
-      setCurrentTime(0); // Reset currentTime to 0
-      const nextVideoIndex =
-        //  Math.floor(Math.random() * playlist.length)
-
-        (currentVideoIndex + 1) % playlist.length;
-
+      setSelectedVideoTotalDuration("0:00")
+      setSelectedVideoDuration("0:00")
+      setCurrentTime(0);
+      const nextVideoIndex = (currentVideoIndex + 1) % playlist.length;
       const nextVideo = playlist[nextVideoIndex];
       if (!nextVideo) return;
 
@@ -263,6 +277,8 @@ function Home() {
 
   const handleVideoSelect = (videoId) => {
     setSelectedVideoId(videoId);
+    setSelectedVideoTotalDuration("0:00")
+    setSelectedVideoDuration("0:00")
     setSearchQuery('');
     const video = searchResults.find((result) => result.id.videoId === videoId);
     if (video) {
@@ -282,6 +298,8 @@ function Home() {
   };
 
   const handlePlayNext = (video) => {
+    setSelectedVideoTotalDuration("0:00")
+    setSelectedVideoDuration("0:00")
     setSelectedVideoId(video.id.videoId);
     setCurrentVideoIndex(playlist.indexOf(video));
     const newMetadata = {
@@ -418,8 +436,12 @@ function Home() {
         )
       }
       {console.log(currentTime, videoDuration)}
-      <div className="progress-container">
-        <div className="progress-bar" style={{ width: `${(currentTime / videoDuration) * 100}%` }}></div>
+      <div className='d-flex align-items-center w-100 justify-content-center'>
+
+        {selectedVideoDuration}/{selectedVideoTotalDuration}
+        <div className="progress-container ms-2">
+          <div className="progress-bar" style={{ width: `${(currentTime / videoDuration) * 100}%` }}></div>
+        </div>
       </div>
       {
         isReady ? (
@@ -494,14 +516,14 @@ function Home() {
         // disabled={isMuted} // Disable slider when muted
         />
       </div>
-      <input
+      {/* <input
         type="range"
         min="0"
         max="100"
         value={(currentTime / videoDuration) * 100}
         onChange={handleChangeDuration}
         className="volume-slider"
-      />
+      /> */}
       <div className="playlist">
         <h2>Playlist</h2>
         <ul>
