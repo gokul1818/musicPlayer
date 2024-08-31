@@ -419,7 +419,7 @@ function Home() {
           <img className="cd" src={cdPlayer} alt="Album Art" />
         </div>}
 
-      <div className="youtube-player-container" style={{ visibility: showVideo ? "hidden" : "visible", width: showVideo ? "0px" : "50vw", height: showVideo ? "0px" : "50vw", margin: showVideo ? "0px" : "20px 0px" }}>
+      <div className="youtube-player-container" style={{ visibility: showVideo ? "hidden" : "visible", width: showVideo ? "0px" : "100vw", height: showVideo ? "0px" : "200px", margin: showVideo ? "0px" : "20px 0px" }}>
         <YouTube
           id='player'
           videoId={selectedVideoId}
@@ -436,7 +436,7 @@ function Home() {
         )
       }
       {console.log(currentTime, videoDuration)}
-      <div className='d-flex align-items-center w-100 justify-content-center'>
+      <div className='d-flex align-items-center w-100 justify-content-center pe-5 me-3'>
 
         {selectedVideoDuration}/{selectedVideoTotalDuration}
         <div className="progress-container ms-2">

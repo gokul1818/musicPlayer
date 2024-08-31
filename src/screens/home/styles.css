@@ -35,21 +35,13 @@
   height: 300px;
 }
 
-.search-results {
-
-}
+.search-results {}
 
 .youtube-player-container {
   position: relative;
-  width: 50vw;
-  /* 50% of the viewport width */
-  height: 50vw;
-  /* Maintain the aspect ratio */
-  max-width: 200px;
-  /* Optional: Maximum size */
-  max-height: 200px;
-  /* Optional: Maximum size */
-  border-radius: 50%;
+  /* border-radius: 50%; */
+  max-width: 357px;
+  
   overflow: hidden;
   background-color: transparent;
   cursor: none;
@@ -57,6 +49,7 @@
   justify-content: center;
   align-items: center;
 }
+
 
 .youtube-player-container iframe {
   position: absolute;
@@ -115,12 +108,13 @@
   font-size: 20px;
   background-color: #3b3636;
   width: 30px;
-  height:30px;
+  height: 30px;
   border-radius: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .search-container {
   width: 100%;
   text-align: center;
