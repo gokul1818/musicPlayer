@@ -259,7 +259,7 @@ function Home() {
       const response = await axios.get(`https://www.googleapis.com/youtube/v3/search`, {
         params: {
           part: 'snippet',
-          q: query,
+          q: query + "music",
           type: 'video',
           maxResults: 10,
           key: apiKey,
